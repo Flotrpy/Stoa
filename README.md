@@ -7,7 +7,7 @@ Stoá is a safety-first, unified security workspace for authorized IT and securi
 
 ## Current delivery stage
 
-PR 1 establishes the runnable foundation. Security modules are intentionally not presented as implemented yet. See `STATUS.md` and `PLAN.md` for the delivery sequence.
+PRs 1–2 establish the runnable foundation and central authorization layer. The stacked PR 3 desktop foundation is under final verification. Security modules are intentionally not presented as implemented yet. See `STATUS.md` and `PLAN.md` for the delivery sequence.
 
 ## Quick start
 

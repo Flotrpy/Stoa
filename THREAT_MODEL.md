@@ -53,3 +53,16 @@ The identity and job-coordination STRIDE analysis follows below. Each module PR 
 | Elevation of privilege | Viewer invokes an administrator route; stale token retains old role | Server-side permission dependencies and live user/membership/role lookup on every request |
 
 Residual risks include online password guessing until endpoint rate limiting is added, single-secret HS256 key rotation, concurrent audit-chain append ordering, and database administrator compromise. These are tracked for authentication hardening and operational delivery before production readiness.
+
+## Desktop foundation analysis
+
+| STRIDE category | Desktop threat | Control |
+| --- | --- | --- |
+| Spoofing | A copied preferences file impersonates an endpoint | Preferences contain only public identifiers; server authentication and current membership remain authoritative; endpoint jobs require separate approval |
+| Tampering | A crash or partial write corrupts settings or queued metadata | Atomic settings replacement, SQLite transactions, strict reconstruction, and fail-safe startup |
+| Repudiation | A disconnected client event is later denied | Accepted events become actor/team-bound hash-chained audit records |
+| Information disclosure | Credentials or evidence enter local config or retry storage | OS credential vault separation plus recursive queue rejection and a bounded server schema |
+| Denial of service | Reconnect or replay loops overwhelm the service | Bounded exponential WebSocket backoff, queue batch limits, and stop-on-first-sync-failure behavior |
+| Elevation of privilege | Desktop controls imply authority or enrollment enables execution | UI is never an authorization boundary; enrollment begins pending and all protected actions are enforced centrally |
+
+Residual desktop risks include the security of the user account backing the OS credential vault, lack of token refresh/rotation, and queued-event growth during a prolonged outage. Operational retention, refresh tokens, and device-bound identity are deferred to production hardening in PR 10.

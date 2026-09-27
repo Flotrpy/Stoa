@@ -6,7 +6,9 @@ Updated: 2026-09-27
 
 PR 1 — Foundation: open, green, and awaiting review.
 
-PR 2 — Identity and shared platform: implementation and local verification in progress on a stacked branch with explicit user authorization.
+PR 2 — Identity and shared platform: open, green, and awaiting review.
+
+PR 3 — Desktop foundation: implementation and local verification complete on a stacked branch with explicit user authorization; hosted verification is pending.
 
 ## Repository inspection
 
@@ -18,15 +20,19 @@ PR 2 — Identity and shared platform: implementation and local verification in 
 
 ## Scope truth
 
-Only foundation capabilities are currently implemented. Identity, enrollment, persistent data, security modules, secure chat, native installers, and production operations remain scheduled for PRs 2–10. Disabled future navigation items identify the planned information architecture without pretending those workflows exist.
+Foundation, central identity/authorization, and desktop connection capabilities are implemented on stacked, unmerged branches. Security modules, secure chat, native installers, and production operations remain scheduled for PRs 4–10. Disabled future navigation items identify the planned information architecture without pretending those workflows exist.
 
 PR 2 now implements the central identity and authorization layer, but it is not yet merged. Security-module execution remains absent; only authorization-gated job metadata can be queued.
+
+PR 3 adds first-run connection, secure token storage, endpoint enrollment, background API work, authenticated realtime transport, crash-safe local preferences, safe offline metadata queueing, explicit connectivity state, settings, and light/dark themes. It stores no passwords, raw evidence, capture data, private keys, or plaintext chat.
 
 ## Verification evidence
 
 - `npm install`: passed; npm dependency audit reported zero findings.
 - `npm run setup`: passed with Python 3.12.10 and an isolated `.venv`.
-- `npm run build`: passed formatting, Ruff, strict mypy, 13 tests, 83.19% coverage, Bandit, pip-audit with zero known vulnerabilities, secret scanning, wheel/sdist creation, and artifact validation.
+- PR 1 `npm run build`: passed formatting, Ruff, strict mypy, 13 tests, 83.19% coverage, Bandit, pip-audit with zero known vulnerabilities, secret scanning, wheel/sdist creation, and artifact validation.
+- PR 2 hosted workflow: passed Windows, Ubuntu, Compose validation, and PostgreSQL migration lifecycle checks.
+- PR 3 `npm run build`: passed formatting, Ruff, strict mypy, 41 tests at 81.62% coverage, Bandit, dependency audit, secret scan, source/wheel builds, and packaging validation.
 - Docker Compose model validation: passed in hosted CI. Local runtime validation remains unavailable because Docker is not installed on the current workstation.
 - Windows verification: passed locally and in hosted CI. Linux verification: passed in hosted CI after declaring the required `libegl1` desktop runtime package.
 
