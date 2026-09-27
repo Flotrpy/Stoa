@@ -2,6 +2,7 @@
 
 import sys
 
+from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication
 
 from stoa_desktop.window import MainWindow
@@ -15,6 +16,7 @@ def main() -> None:
     app.setOrganizationName("Flotrpy")
     window = MainWindow()
     window.show()
+    QTimer.singleShot(0, window.restore_session)
     raise SystemExit(app.exec())
 
 
