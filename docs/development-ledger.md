@@ -16,4 +16,4 @@ This ledger records meaningful commits only. Hashes and PR numbers are filled af
 | 10 | `1a34535` | build: add PostgreSQL and API container foundation | 1 | Compose and container foundation | Static review | Pass with limitation | Docker-host validation in CI |
 | 11 | `20df0ac` | test: add foundation API unit and desktop smoke coverage | 1 | Unit, API, desktop smoke, safe-fixture policy | 13 tests, 83.19% coverage | Pass | Integration suites in PR 2+ |
 | 12 | `b88ce09` | ci: enforce Windows Linux and Compose quality gates | 1 | Windows/Linux and Compose CI | Workflow review | Pass, pending hosted run | Hosted CI result |
-| 13 | pending | docs: record verified PR 1 evidence and residual risks | 1 | Ledger and delivery status | Full local build | Pass | PR review and hosted CI |
+| 13 | `9ddda13` | docs: record verified PR 1 evidence and residual risks | 1 | Ledger and delivery status | Full local build | Pass | PR review and hosted CI |
