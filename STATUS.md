@@ -12,7 +12,7 @@ PR 3 — Desktop foundation: open, green, and awaiting review.
 
 PR 4 — Port and service scanner: open, green, and awaiting review.
 
-PR 5 — Packet analysis and IDS: open, locally green after a Windows CI fixture repair, and awaiting hosted rerun.
+PR 5 — Packet analysis and IDS: open, green, and awaiting review.
 
 ## Repository inspection
 
@@ -46,6 +46,7 @@ PR 5 implements authorized interface capture, protocol metadata views, local rot
 - PR 4 hosted workflow: passed Windows, Ubuntu, Compose validation, and PostgreSQL migration lifecycle checks.
 - PR 5 `npm run build`: passed formatting, Ruff, strict mypy, 55 tests at 76.51% coverage, Bandit, dependency audit, secret scan, source/wheel builds, and packaging validation.
 - PR 5 Windows CI repair: replaced implicit Scapy Ethernet fixture addressing with explicit synthetic MAC addresses after hosted Windows lacked the default loopback adapter name.
+- PR 5 hosted workflow: passed Windows, Ubuntu, Compose validation, and PostgreSQL migration lifecycle checks.
 - Docker Compose model validation: passed in hosted CI. Local runtime validation remains unavailable because Docker is not installed on the current workstation.
 - Windows verification: passed locally and in hosted CI. Linux verification: passed in hosted CI after declaring the required `libegl1` desktop runtime package.
 
