@@ -51,4 +51,4 @@ This ledger records meaningful commits only. Hashes and PR numbers are filled af
 | 45 | `2a4b446` | feat(web): add same-origin scanner engine and ZAP import | 6 | Crawl, passive checks, canary probes, redaction, local ZAP metadata import | Web scanner unit tests, Ruff, strict mypy | Pass | API integration |
 | 46 | `8f628c2` | feat(api): persist web scan findings and enforce policy | 6 | Policy caps, migration, endpoint-bound redacted findings, alerts, reports | API and migration tests | Pass | Desktop workflow |
 | 47 | `99930d6` | feat(desktop): add authorized web scanner workflow | 6 | Scope selection, crawl controls, active-check toggles, findings table, report export | Desktop smoke, strict mypy | Pass | Full build |
-| 48 | `7f770fd` | docs: document authorized web scanning boundaries | 6 | Web scanner safety boundaries, status, residual risks | `npm run build`; 58 tests, 76.81% coverage | Pass | Hosted matrix |
+| 48 | `7f770fd` | docs: document authorized web scanning boundaries | 6 | Web scanner safety boundaries, status, residual risks | `npm run build`; 58 tests, 76.81% coverage; hosted Windows/Linux/Compose/PostgreSQL | Pass | PR review |
