@@ -1,11 +1,8 @@
 from fastapi.testclient import TestClient
 
-from stoa_server.app import create_app
 
-
-def test_health_contract() -> None:
-    with TestClient(create_app()) as client:
-        response = client.get("/api/v1/health")
+def test_health_contract(client: TestClient) -> None:
+    response = client.get("/api/v1/health")
 
     assert response.status_code == 200
     payload = response.json()
@@ -15,16 +12,17 @@ def test_health_contract() -> None:
     assert payload["timestamp"].endswith("Z")
 
 
-def test_readiness_contract() -> None:
-    with TestClient(create_app()) as client:
-        response = client.get("/api/v1/ready")
+def test_readiness_contract(client: TestClient) -> None:
+    response = client.get("/api/v1/ready")
 
     assert response.status_code == 200
-    assert response.json() == {"status": "ready", "checks": {"application": "ready"}}
+    assert response.json() == {
+        "status": "ready",
+        "checks": {"application": "ready", "database": "ready"},
+    }
 
 
-def test_unversioned_health_route_does_not_exist() -> None:
-    with TestClient(create_app()) as client:
-        response = client.get("/health")
+def test_unversioned_health_route_does_not_exist(client: TestClient) -> None:
+    response = client.get("/health")
 
     assert response.status_code == 404
