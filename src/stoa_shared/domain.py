@@ -133,6 +133,13 @@ class PortScanPolicyConfiguration(ApiModel):
     allow_syn: bool = False
 
 
+class PacketAnalysisPolicyConfiguration(ApiModel):
+    maximum_packets: int = Field(default=100_000, ge=1, le=1_000_000)
+    maximum_file_bytes: int = Field(default=50_000_000, ge=1_000, le=2_000_000_000)
+    retained_files: int = Field(default=5, ge=1, le=100)
+    allow_live_capture: bool = True
+
+
 class ModulePolicyResponse(ApiModel):
     id: UUID
     team_id: UUID
@@ -156,6 +163,8 @@ class JobCreate(ApiModel):
     def validate_module_configuration(self) -> "JobCreate":
         if self.module_id == "port-scanner":
             PortScanJobConfiguration.model_validate(self.configuration)
+        if self.module_id == "packet-analysis":
+            PacketCaptureJobConfiguration.model_validate(self.configuration)
         return self
 
 
@@ -241,6 +250,76 @@ class PortScanObservationResponse(PortObservationCreate):
 class PortScanResultResponse(ApiModel):
     job: JobResponse
     observations: list[PortScanObservationResponse]
+
+
+class PacketCaptureJobConfiguration(ApiModel):
+    interface: str = Field(min_length=1, max_length=512)
+    protocols: list[str] = Field(min_length=1, max_length=8)
+    packet_limit: int = Field(default=100_000, ge=1, le=1_000_000)
+    maximum_file_bytes: int = Field(default=50_000_000, ge=1_000, le=2_000_000_000)
+    retained_files: int = Field(default=5, ge=1, le=100)
+    replay_only: bool = False
+
+    @field_validator("protocols")
+    @classmethod
+    def protocols_are_supported(cls, value: list[str]) -> list[str]:
+        supported = {"tcp", "udp", "icmp", "arp", "dns", "http", "tls", "other"}
+        if len(value) != len(set(value)) or not set(value) <= supported:
+            raise ValueError("protocols must be unique supported values")
+        return value
+
+
+class PacketIndicatorCreate(ApiModel):
+    rule_id: str = Field(pattern=r"^STOA-NET-[0-9]{3}$")
+    title: str = Field(min_length=1, max_length=240)
+    severity: str = Field(pattern=r"^(info|low|medium|high)$")
+    confidence: float = Field(ge=0, le=1)
+    explanation: str = Field(min_length=1, max_length=2000)
+    source: str | None = Field(default=None, max_length=253)
+    destination: str | None = Field(default=None, max_length=253)
+    evidence: dict[str, str | int | float] = Field(default_factory=dict)
+
+    @field_validator("evidence")
+    @classmethod
+    def evidence_is_bounded(
+        cls, value: dict[str, str | int | float]
+    ) -> dict[str, str | int | float]:
+        forbidden = {"payload", "packet_payload", "token", "secret", "password", "hash"}
+        if (
+            len(value) > 20
+            or any(key.casefold() in forbidden for key in value)
+            or any(len(str(item)) > 512 for item in value.values())
+        ):
+            raise ValueError("indicator evidence is too large")
+        return value
+
+
+class PacketAnalysisResultCreate(ApiModel):
+    executing_endpoint_id: UUID
+    packet_count: int = Field(ge=0, le=1_000_000)
+    byte_count: int = Field(ge=0, le=100_000_000_000)
+    protocols: dict[str, int]
+    indicators: list[PacketIndicatorCreate] = Field(max_length=10_000)
+    cancelled: bool = False
+
+    @field_validator("protocols")
+    @classmethod
+    def protocol_counts_are_bounded(cls, value: dict[str, int]) -> dict[str, int]:
+        supported = {"tcp", "udp", "icmp", "arp", "dns", "http", "tls", "other"}
+        if not set(value) <= supported or any(count < 0 for count in value.values()):
+            raise ValueError("protocol counts contain unsupported values")
+        return value
+
+
+class AlertResponse(ApiModel):
+    id: UUID
+    finding_id: UUID | None
+    title: str
+    severity: str
+    confidence: float
+    state: str
+    deduplication_key: str
+    created_at: datetime
 
 
 class ClientEventCreate(ApiModel):
