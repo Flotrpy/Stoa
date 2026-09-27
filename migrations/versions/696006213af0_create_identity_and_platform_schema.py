@@ -406,4 +406,8 @@ def downgrade() -> None:
 
     op.drop_table("teams")
     op.drop_table("roles")
+    bind = op.get_bind()
+    if bind.dialect.name == "postgresql":
+        for enum_name in ("recordstate", "severity", "jobstate", "endpointstate", "rolename"):
+            sa.Enum(name=enum_name).drop(bind, checkfirst=True)
     # ### end Alembic commands ###
