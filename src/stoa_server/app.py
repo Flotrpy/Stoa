@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from stoa_server import __version__
 from stoa_server.database import get_session
+from stoa_server.realtime import router as realtime_router
 from stoa_server.routers.auth import router as auth_router
 from stoa_server.routers.platform import router as platform_router
 from stoa_shared import HealthResponse, ReadinessResponse, ServiceStatus
@@ -60,6 +61,7 @@ def create_app() -> FastAPI:
     application.include_router(router)
     application.include_router(auth_router, prefix="/api/v1")
     application.include_router(platform_router, prefix="/api/v1")
+    application.include_router(realtime_router, prefix="/api/v1")
     return application
 
 

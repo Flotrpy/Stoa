@@ -61,6 +61,12 @@ def get_current_principal(
 ) -> Principal:
     """Load current membership on every request so revocations take effect immediately."""
 
+    return resolve_principal(token, session, settings)
+
+
+def resolve_principal(token: str, session: Session, settings: Settings) -> Principal:
+    """Resolve a bearer token for HTTP and WebSocket transports."""
+
     try:
         user_id, team_id = decode_access_token(token, settings)
     except TokenValidationError as error:
