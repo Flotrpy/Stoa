@@ -45,6 +45,7 @@ def stylesheet(theme: Theme) -> str:
         QLabel#eyebrow {{ color: {token["muted"]}; font-size: 12px; font-weight: 600; }}
         QLabel#heading {{ color: {token["text"]}; font-size: 26px; font-weight: 700; }}
         QLabel#body {{ color: {token["muted"]}; font-size: 14px; }}
+        QLabel#error {{ color: #c13d3d; font-size: 13px; }}
         QPushButton#nav {{
             color: {token["sidebar_text"]}; background: transparent; border: 0;
             border-radius: 6px; padding: 10px 12px; text-align: left; font-size: 14px;
@@ -56,9 +57,13 @@ def stylesheet(theme: Theme) -> str:
             border-radius: 8px;
         }}
         QLabel#metric {{ color: {token["text"]}; font-size: 28px; font-weight: 700; }}
-        QComboBox {{
+        QComboBox, QLineEdit {{
             color: {token["text"]}; background: {token["surface"]};
             border: 1px solid {token["border"]}; border-radius: 6px; padding: 7px 10px;
+        }}
+        QPushButton#primary {{
+            color: white; background: {token["accent"]}; border: 0;
+            border-radius: 6px; padding: 9px 14px; font-weight: 600;
         }}
         QStatusBar {{ background: {token["surface"]}; color: {token["muted"]}; }}
     """
