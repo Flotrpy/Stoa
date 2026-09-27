@@ -47,3 +47,4 @@ This ledger records meaningful commits only. Hashes and PR numbers are filled af
 | 41 | `85ddc51` | feat(api): coordinate packet jobs and redacted alerts | 5 | Capture policy, result summaries, findings, alert deduplication | API tests | Pass | Hosted matrix |
 | 42 | `40bff8d` | test(packets): cover protocol replay retention IDS and alerts | 5 | Synthetic packet fixtures and no-payload boundaries | 55 tests, 76.51% coverage | Pass | Full build |
 | 43 | `1918eae` | feat(desktop): add local packet capture and replay workspace | 5 | Capture controls, permission states, filtering, table, local replay | Offscreen smoke, strict mypy | Pass | Full build |
+| 44 | `1b445b7` | test(packets): make PCAP fixture portable on Windows CI | 5 | Explicit synthetic Ethernet addressing for PCAP round-trip tests | `npm run build`; 55 tests, 76.51% coverage | Pass | Hosted rerun |
