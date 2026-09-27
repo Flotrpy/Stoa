@@ -12,8 +12,8 @@ This ledger records meaningful commits only. Hashes and PR numbers are filled af
 | 6 | `9bd0fcf` | feat(api): add versioned health and readiness service | 1 | Initial server shell, API versioning, health checks | API tests | Pass | Persistence and auth in PR 2 |
 | 7 | `bce5311` | feat(desktop): add accessible application shell and themes | 1 | Desktop shell, navigation, light/dark theme | Offscreen smoke test | Pass | Functional screens in PR 3+ |
 | 8 | `b6bb733` | feat(core): add job authorization and platform boundaries | 1 | Workers, authorization context, platform adapters | Unit tests, mypy | Pass | Enforcement and adapters in PR 2+ |
-| 9 | `a79ee60` | build: add cross-platform npm command interface | 1 | Required npm commands, setup, build/security/package gates | Windows bootstrap and build | Pass | Linux CI confirmation |
-| 10 | `1a34535` | build: add PostgreSQL and API container foundation | 1 | Compose and container foundation | Static review | Pass with limitation | Docker-host validation in CI |
+| 9 | `a79ee60` | build: add cross-platform npm command interface | 1 | Required npm commands, setup, build/security/package gates | Windows local build; Windows/Linux CI | Pass | Later platform workflows |
+| 10 | `1a34535` | build: add PostgreSQL and API container foundation | 1 | Compose and container foundation | Hosted Compose validation | Pass | Runtime integration in PR 2 |
 | 11 | `20df0ac` | test: add foundation API unit and desktop smoke coverage | 1 | Unit, API, desktop smoke, safe-fixture policy | 13 tests, 83.19% coverage | Pass | Integration suites in PR 2+ |
-| 12 | `b88ce09` | ci: enforce Windows Linux and Compose quality gates | 1 | Windows/Linux and Compose CI | Workflow review | Pass, pending hosted run | Hosted CI result |
-| 13 | `9ddda13` | docs: record verified PR 1 evidence and residual risks | 1 | Ledger and delivery status | Full local build | Pass | PR review and hosted CI |
+| 12 | `b88ce09` | ci: enforce Windows Linux and Compose quality gates | 1 | Windows/Linux and Compose CI | Hosted workflow run | Pass | Future platform matrix expansion |
+| 13 | `9ddda13` | docs: record verified PR 1 evidence and residual risks | 1 | Ledger and delivery status | Full local and hosted build | Pass | PR review |
