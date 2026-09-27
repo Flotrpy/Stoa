@@ -42,3 +42,8 @@ This ledger records meaningful commits only. Hashes and PR numbers are filled af
 | 36 | `3fab6cb` | feat(api): persist scanner results and enforce module policy | 4 | Policy caps, migration, endpoint-bound observations, JSON/text report APIs | API and migration tests | Pass | Hosted PostgreSQL cycle |
 | 37 | `5195149` | feat(desktop): add authorized port scanner workflow | 4 | Scope selection, progress, cancellation, results, report export | Offscreen smoke, strict mypy | Pass | Hosted Windows/Linux matrix |
 | 38 | `8c909ca` | test(scanner): cover safe fixtures policy results and reports | 4 | Loopback scan fixture, authorization failures, policy gates, reports | 49 tests, 78.16% coverage | Pass | Local and hosted build green; PR review |
+| 39 | `1738a67` | feat(packets): add local capture metadata replay and retention | 5 | Interfaces, protocol metadata, PCAP rotation/export, replay, filters, summaries | Unit tests, strict mypy | Pass | Platform capture hosts |
+| 40 | `3dceb43` | feat(ids): add deterministic explainable metadata indicators | 5 | Port, ARP, DNS and cleartext-service indicators | Deterministic unit tests | Pass | Rule tuning with reviewed fixtures |
+| 41 | `85ddc51` | feat(api): coordinate packet jobs and redacted alerts | 5 | Capture policy, result summaries, findings, alert deduplication | API tests | Pass | Hosted matrix |
+| 42 | `40bff8d` | test(packets): cover protocol replay retention IDS and alerts | 5 | Synthetic packet fixtures and no-payload boundaries | 55 tests, 76.51% coverage | Pass | Full build |
+| 43 | `1918eae` | feat(desktop): add local packet capture and replay workspace | 5 | Capture controls, permission states, filtering, table, local replay | Offscreen smoke, strict mypy | Pass | Full build |

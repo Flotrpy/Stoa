@@ -79,3 +79,16 @@ Residual desktop risks include the security of the user account backing the OS c
 | Elevation of privilege | Unprivileged UI silently starts raw-packet scanning | TCP connect is default; SYN is a separate adapter requiring central opt-in and explicit local privilege confirmation |
 
 Residual risks include DNS changes before initial resolution, OS-specific firewall classification differences, Scapy/Npcap platform behavior, and service misidentification from conventional ports or untrusted banners. Reports describe observations rather than claiming proof of a service or vulnerability.
+
+## Packet analysis and IDS analysis
+
+| STRIDE category | Packet-analysis threat | Control |
+| --- | --- | --- |
+| Spoofing | Capture includes traffic outside the reviewed network | Source/destination IP scope filter runs before PCAP write or IDS processing |
+| Tampering | Imported PCAP changes or malformed packets alter results | Deterministic bounded streaming parser, explicit errors, original file remains untouched |
+| Repudiation | Operator denies capture or alert submission | Endpoint/job/correlation binding and redacted hash-chained audit summary |
+| Information disclosure | Raw frames or application content reach the server | PCAP and payload bytes remain local; central schemas accept counts and bounded indicator metadata only |
+| Denial of service | Unlimited capture consumes memory or disk | Packet cap, rotating file size/count, streaming replay limit, no central packet ingestion |
+| Elevation of privilege | UI hides missing packet-capture permission | Full app remains unprivileged; permission/Npcap errors are explicit and capture stops cleanly |
+
+IDS outputs are indicators, not proof. Port-scan, ARP-binding, DNS-entropy, and cleartext-port rules include confidence and plausible benign explanations.
