@@ -15,7 +15,14 @@ def test_initial_migration_upgrades_downgrades_and_reupgrades(
 
     command.upgrade(config, "head")
     engine = create_engine(temporary_database_url)
-    expected = {"users", "teams", "team_memberships", "authorization_scopes", "audit_events"}
+    expected = {
+        "users",
+        "teams",
+        "team_memberships",
+        "authorization_scopes",
+        "audit_events",
+        "port_scan_observations",
+    }
     assert expected.issubset(set(inspect(engine).get_table_names()))
 
     command.downgrade(config, "base")
