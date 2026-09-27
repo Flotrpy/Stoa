@@ -25,6 +25,8 @@ from stoa_desktop.api_client import Connectivity
 from stoa_desktop.background import BackgroundTask, TaskRunner
 from stoa_desktop.enrollment import EnrollmentService
 from stoa_desktop.onboarding import OnboardingDialog
+from stoa_desktop.packet_analysis import PacketAnalysisService
+from stoa_desktop.packet_analysis_view import PacketAnalysisView
 from stoa_desktop.port_scanner import PortScanService
 from stoa_desktop.port_scanner_view import PortScannerView
 from stoa_desktop.session import DesktopSession
@@ -41,6 +43,7 @@ class MainWindow(QMainWindow):
         "Findings",
         "Alerts",
         "Modules",
+        "Packet Analysis",
         "Chat",
         "Reports",
         "Policies",
@@ -72,9 +75,11 @@ class MainWindow(QMainWindow):
         self.dashboard = self._build_dashboard()
         self.settings_page = self._build_settings()
         self.modules_page = PortScannerView(PortScanService(self.session))
+        self.packet_page = PacketAnalysisView(PacketAnalysisService(self.session))
         self.pages.addWidget(self.dashboard)
         self.pages.addWidget(self.settings_page)
         self.pages.addWidget(self.modules_page)
+        self.pages.addWidget(self.packet_page)
         layout.addWidget(self.pages, 1)
         return shell
 
@@ -95,7 +100,7 @@ class MainWindow(QMainWindow):
             button.setObjectName("nav")
             button.setProperty("active", label == "Dashboard")
             button.setCursor(Qt.CursorShape.PointingHandCursor)
-            button.setEnabled(label in {"Dashboard", "Modules", "Settings"})
+            button.setEnabled(label in {"Dashboard", "Modules", "Packet Analysis", "Settings"})
             if not button.isEnabled():
                 button.setToolTip(f"{label} arrives in its scheduled delivery phase")
             button.clicked.connect(lambda checked=False, name=label: self._navigate(name))
@@ -207,6 +212,7 @@ class MainWindow(QMainWindow):
         destination = {
             "Dashboard": self.dashboard,
             "Modules": self.modules_page,
+            "Packet Analysis": self.packet_page,
             "Settings": self.settings_page,
         }[name]
         self.pages.setCurrentWidget(destination)
