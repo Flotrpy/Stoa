@@ -8,6 +8,7 @@ from stoa_desktop.api_client import ApiClient, Connectivity
 from stoa_desktop.config import ConfigStore
 from stoa_desktop.offline_queue import OfflineQueue
 from stoa_desktop.secrets import SecureTokenStore
+from stoa_desktop.sync import OfflineSynchronizer
 
 
 class DesktopSession:
@@ -32,6 +33,7 @@ class DesktopSession:
         if self.connectivity is Connectivity.CONNECTED:
             try:
                 self.principal = self.client.get("/api/v1/auth/me")
+                OfflineSynchronizer(self.client, self.offline_queue).flush()
             except Exception:
                 self.token_store.clear()
                 self.client.token = None
@@ -52,6 +54,7 @@ class DesktopSession:
         self.config_store.save(self.settings)
         self.principal = principal
         self.connectivity = Connectivity.CONNECTED
+        OfflineSynchronizer(self.client, self.offline_queue).flush()
         return principal
 
     def update_preferences(self, *, api_url: str, theme: str) -> None:
