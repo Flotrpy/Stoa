@@ -24,6 +24,8 @@ from PySide6.QtWidgets import (
 from stoa_desktop.api_client import Connectivity
 from stoa_desktop.background import BackgroundTask, TaskRunner
 from stoa_desktop.enrollment import EnrollmentService
+from stoa_desktop.firewall_simulator import FirewallSimulatorService
+from stoa_desktop.firewall_simulator_view import FirewallSimulatorView
 from stoa_desktop.onboarding import OnboardingDialog
 from stoa_desktop.packet_analysis import PacketAnalysisService
 from stoa_desktop.packet_analysis_view import PacketAnalysisView
@@ -47,6 +49,7 @@ class MainWindow(QMainWindow):
         "Port Scanner",
         "Web Scanner",
         "Packet Analysis",
+        "Firewall Simulator",
         "Chat",
         "Reports",
         "Policies",
@@ -80,11 +83,13 @@ class MainWindow(QMainWindow):
         self.modules_page = PortScannerView(PortScanService(self.session))
         self.web_page = WebScannerView(WebScanService(self.session))
         self.packet_page = PacketAnalysisView(PacketAnalysisService(self.session))
+        self.firewall_page = FirewallSimulatorView(FirewallSimulatorService(self.session))
         self.pages.addWidget(self.dashboard)
         self.pages.addWidget(self.settings_page)
         self.pages.addWidget(self.modules_page)
         self.pages.addWidget(self.web_page)
         self.pages.addWidget(self.packet_page)
+        self.pages.addWidget(self.firewall_page)
         layout.addWidget(self.pages, 1)
         return shell
 
@@ -107,6 +112,7 @@ class MainWindow(QMainWindow):
             button.setCursor(Qt.CursorShape.PointingHandCursor)
             button.setEnabled(
                 label in {"Dashboard", "Port Scanner", "Web Scanner", "Packet Analysis", "Settings"}
+                or label == "Firewall Simulator"
             )
             if not button.isEnabled():
                 button.setToolTip(f"{label} arrives in its scheduled delivery phase")
@@ -221,6 +227,7 @@ class MainWindow(QMainWindow):
             "Port Scanner": self.modules_page,
             "Web Scanner": self.web_page,
             "Packet Analysis": self.packet_page,
+            "Firewall Simulator": self.firewall_page,
             "Settings": self.settings_page,
         }[name]
         self.pages.setCurrentWidget(destination)
