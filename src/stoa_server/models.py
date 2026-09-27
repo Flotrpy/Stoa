@@ -5,7 +5,19 @@ from enum import StrEnum
 from typing import Any
 from uuid import UUID, uuid4
 
-from sqlalchemy import JSON, Boolean, DateTime, Enum, Float, ForeignKey, Index, String, Text, Uuid
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    DateTime,
+    Enum,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    Uuid,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from stoa_server.database import Base
@@ -164,6 +176,19 @@ class JobProgress(IdentityMixin, Base):
     percent: Mapped[float] = mapped_column(Float)
     message: Mapped[str] = mapped_column(String(500))
     recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class PortScanObservation(IdentityMixin, TimestampMixin, Base):
+    __tablename__ = "port_scan_observations"
+    __table_args__ = (Index("uq_port_scan_job_port", "job_id", "port", unique=True),)
+
+    team_id: Mapped[UUID] = mapped_column(ForeignKey("teams.id", ondelete="CASCADE"))
+    job_id: Mapped[UUID] = mapped_column(ForeignKey("jobs.id", ondelete="CASCADE"))
+    port: Mapped[int] = mapped_column(Integer)
+    state: Mapped[str] = mapped_column(String(24))
+    service: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    banner: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    latency_ms: Mapped[float | None] = mapped_column(Float, nullable=True)
 
 
 class Finding(IdentityMixin, TimestampMixin, Base):

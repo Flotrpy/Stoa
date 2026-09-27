@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class ApiModel(BaseModel):
@@ -126,6 +126,13 @@ class ModulePolicyUpsert(ApiModel):
     configuration: dict[str, Any] = Field(default_factory=dict)
 
 
+class PortScanPolicyConfiguration(ApiModel):
+    max_ports: int = Field(default=1024, ge=1, le=1024)
+    max_concurrency: int = Field(default=64, ge=1, le=256)
+    allow_banner_collection: bool = True
+    allow_syn: bool = False
+
+
 class ModulePolicyResponse(ApiModel):
     id: UUID
     team_id: UUID
@@ -145,6 +152,12 @@ class JobCreate(ApiModel):
     business_justification: str = Field(min_length=10, max_length=2000)
     configuration: dict[str, Any] = Field(default_factory=dict)
 
+    @model_validator(mode="after")
+    def validate_module_configuration(self) -> "JobCreate":
+        if self.module_id == "port-scanner":
+            PortScanJobConfiguration.model_validate(self.configuration)
+        return self
+
 
 class JobResponse(ApiModel):
     id: UUID
@@ -161,6 +174,73 @@ class JobResponse(ApiModel):
     state: str
     correlation_id: UUID
     created_at: datetime
+
+
+class PortScanJobConfiguration(ApiModel):
+    ports: list[int] = Field(min_length=1, max_length=1024)
+    method: str = Field(default="tcp-connect", pattern=r"^(tcp-connect|syn)$")
+    timeout_seconds: float = Field(default=1.0, ge=0.05, le=10)
+    concurrency: int = Field(default=64, ge=1, le=256)
+    max_attempts_per_second: int = Field(default=100, ge=1, le=500)
+    collect_banners: bool = True
+
+    @field_validator("ports")
+    @classmethod
+    def ports_are_unique_sorted(cls, value: list[int]) -> list[int]:
+        if any(port < 1 or port > 65535 for port in value):
+            raise ValueError("ports must be between 1 and 65535")
+        if value != sorted(set(value)):
+            raise ValueError("ports must be unique and sorted")
+        return value
+
+
+class PortObservationCreate(ApiModel):
+    port: int = Field(ge=1, le=65535)
+    state: str = Field(pattern=r"^(open|closed|filtered|unreachable)$")
+    service: str | None = Field(default=None, max_length=80)
+    banner: str | None = Field(default=None, max_length=256)
+    latency_ms: float | None = Field(default=None, ge=0, le=600_000)
+
+    @field_validator("banner")
+    @classmethod
+    def banner_is_printable(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        cleaned = "".join(character if character.isprintable() else " " for character in value)
+        return " ".join(cleaned.split()) or None
+
+
+class PortScanResultCreate(ApiModel):
+    executing_endpoint_id: UUID
+    observations: list[PortObservationCreate] = Field(max_length=1024)
+    cancelled: bool = False
+
+    @model_validator(mode="after")
+    def completed_result_is_not_empty(self) -> "PortScanResultCreate":
+        if not self.cancelled and not self.observations:
+            raise ValueError("a completed scan requires observations")
+        return self
+
+    @field_validator("observations")
+    @classmethod
+    def observation_ports_are_unique(
+        cls, value: list[PortObservationCreate]
+    ) -> list[PortObservationCreate]:
+        ports = [item.port for item in value]
+        if len(ports) != len(set(ports)):
+            raise ValueError("observation ports must be unique")
+        return value
+
+
+class PortScanObservationResponse(PortObservationCreate):
+    id: UUID
+    job_id: UUID
+    created_at: datetime
+
+
+class PortScanResultResponse(ApiModel):
+    job: JobResponse
+    observations: list[PortScanObservationResponse]
 
 
 class ClientEventCreate(ApiModel):

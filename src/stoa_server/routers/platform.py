@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -18,7 +18,9 @@ from stoa_server.models import (
     Endpoint,
     EndpointState,
     Job,
+    JobState,
     ModulePolicy,
+    PortScanObservation,
     Role,
     RoleName,
     TeamMembership,
@@ -42,6 +44,11 @@ from stoa_shared.domain import (
     ModulePolicyResponse,
     ModulePolicyUpsert,
     PageInfo,
+    PortScanJobConfiguration,
+    PortScanObservationResponse,
+    PortScanPolicyConfiguration,
+    PortScanResultCreate,
+    PortScanResultResponse,
     UserResponse,
 )
 
@@ -289,6 +296,9 @@ def upsert_policy(
 ) -> ModulePolicy:
     if not module_id or len(module_id) > 80:
         raise HTTPException(status_code=422, detail="invalid module_id")
+    configuration = payload.configuration
+    if module_id == "port-scanner":
+        configuration = PortScanPolicyConfiguration.model_validate(configuration).model_dump()
     policy = session.scalar(
         select(ModulePolicy).where(
             ModulePolicy.team_id == principal.team.id, ModulePolicy.module_id == module_id
@@ -298,7 +308,7 @@ def upsert_policy(
         policy = ModulePolicy(team_id=principal.team.id, module_id=module_id)
         session.add(policy)
     policy.enabled = payload.enabled
-    policy.configuration = payload.configuration
+    policy.configuration = configuration
     policy.updated_by_user_id = principal.user.id
     session.flush()
     record_audit_event(
@@ -354,6 +364,26 @@ def create_job(
         session.commit()
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(error)) from error
 
+    configuration = dict(payload.configuration)
+    if payload.module_id == "port-scanner":
+        scan_configuration = PortScanJobConfiguration.model_validate(configuration)
+        policy_configuration = authorized.policy.configuration
+        maximum_ports = int(policy_configuration.get("max_ports", 1024))
+        maximum_concurrency = int(policy_configuration.get("max_concurrency", 64))
+        if len(scan_configuration.ports) > maximum_ports:
+            raise HTTPException(status_code=403, detail="port count exceeds module policy")
+        if scan_configuration.concurrency > maximum_concurrency:
+            raise HTTPException(status_code=403, detail="concurrency exceeds module policy")
+        if scan_configuration.method == "syn" and not policy_configuration.get("allow_syn", False):
+            raise HTTPException(status_code=403, detail="SYN scanning is disabled by policy")
+        configuration = scan_configuration.model_dump()
+        if not policy_configuration.get("allow_banner_collection", True):
+            configuration["collect_banners"] = False
+        configuration["effective_minimum_interval_seconds"] = (
+            authorized.scope.rate_policy["window_seconds"]
+            / authorized.scope.rate_policy["max_requests"]
+        )
+
     job = Job(
         team_id=principal.team.id,
         module_id=payload.module_id,
@@ -364,7 +394,7 @@ def create_job(
         target=payload.target.strip(),
         business_justification=payload.business_justification.strip(),
         rate_policy=authorized.scope.rate_policy,
-        configuration=payload.configuration,
+        configuration=configuration,
     )
     session.add(job)
     session.flush()
@@ -380,6 +410,117 @@ def create_job(
     )
     session.commit()
     return job
+
+
+def _port_scan_job(session: Session, principal: Principal, job_id: UUID) -> Job:
+    job = session.scalar(select(Job).where(Job.id == job_id, Job.team_id == principal.team.id))
+    if job is None or job.module_id != "port-scanner":
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="port scan job not found")
+    return job
+
+
+@router.post(
+    "/jobs/{job_id}/port-scan-results",
+    response_model=PortScanResultResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_port_scan_results(
+    job_id: UUID,
+    payload: PortScanResultCreate,
+    principal: Annotated[Principal, Depends(require_permission(Permission.RUN_JOBS))],
+    session: Annotated[Session, Depends(get_session)],
+) -> PortScanResultResponse:
+    job = _port_scan_job(session, principal, job_id)
+    if payload.executing_endpoint_id != job.executing_endpoint_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="endpoint mismatch")
+    if job.state not in {JobState.QUEUED, JobState.RUNNING, JobState.CANCELLING}:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="job is already final")
+    observations = [
+        PortScanObservation(
+            team_id=principal.team.id,
+            job_id=job.id,
+            port=item.port,
+            state=item.state,
+            service=item.service,
+            banner=item.banner,
+            latency_ms=item.latency_ms,
+        )
+        for item in payload.observations
+    ]
+    session.add_all(observations)
+    job.state = JobState.CANCELLED if payload.cancelled else JobState.SUCCEEDED
+    record_audit_event(
+        session,
+        team_id=principal.team.id,
+        actor_user_id=principal.user.id,
+        action="port_scan.results_recorded",
+        resource_type="job",
+        resource_id=str(job.id),
+        correlation_id=job.correlation_id,
+        event_data={
+            "observation_count": len(observations),
+            "open_count": sum(item.state == "open" for item in observations),
+            "cancelled": payload.cancelled,
+        },
+    )
+    try:
+        session.commit()
+    except IntegrityError as error:
+        session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail="results already recorded"
+        ) from error
+    return PortScanResultResponse(
+        job=JobResponse.model_validate(job),
+        observations=[PortScanObservationResponse.model_validate(item) for item in observations],
+    )
+
+
+@router.get("/jobs/{job_id}/port-scan-results", response_model=PortScanResultResponse)
+def get_port_scan_results(
+    job_id: UUID,
+    principal: Annotated[Principal, Depends(require_permission(Permission.VIEW))],
+    session: Annotated[Session, Depends(get_session)],
+) -> PortScanResultResponse:
+    job = _port_scan_job(session, principal, job_id)
+    observations = list(
+        session.scalars(
+            select(PortScanObservation)
+            .where(
+                PortScanObservation.job_id == job.id,
+                PortScanObservation.team_id == principal.team.id,
+            )
+            .order_by(PortScanObservation.port)
+        )
+    )
+    return PortScanResultResponse(
+        job=JobResponse.model_validate(job),
+        observations=[PortScanObservationResponse.model_validate(item) for item in observations],
+    )
+
+
+@router.get("/jobs/{job_id}/port-scan-report")
+def get_port_scan_report(
+    job_id: UUID,
+    principal: Annotated[Principal, Depends(require_permission(Permission.VIEW))],
+    session: Annotated[Session, Depends(get_session)],
+    format: Annotated[str, Query(pattern=r"^(json|text)$")] = "json",
+) -> Response:
+    result = get_port_scan_results(job_id, principal, session)
+    if format == "json":
+        return Response(content=result.model_dump_json(indent=2), media_type="application/json")
+    lines = [
+        f"Stoá port scan report: {result.job.target}",
+        f"Job: {result.job.id}",
+        f"State: {result.job.state}",
+        "",
+        "PORT     STATE        SERVICE             BANNER",
+    ]
+    for item in result.observations:
+        lines.append(
+            f"{item.port:<8} {item.state:<12} {(item.service or '-'):<19} {item.banner or '-'}"
+        )
+    return Response(content="\n".join(lines) + "\n", media_type="text/plain")
 
 
 @router.get("/audit-events", response_model=AuditEventPage)
