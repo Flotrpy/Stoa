@@ -47,4 +47,3 @@ Audit events are append-oriented and contain the previous event digest. The dige
 ## Data ownership
 
 Every central operational entity carries a team identifier or inherits one through a constrained parent. API queries always include the current team. Raw packet payloads, password material, private keys, decrypted chat, and sensitive local evidence are not represented as centrally uploadable fields.
-
