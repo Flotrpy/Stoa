@@ -2,10 +2,17 @@
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import Annotated
 
-from fastapi import APIRouter, FastAPI
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, status
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
 
 from stoa_server import __version__
+from stoa_server.database import get_session
+from stoa_server.routers.auth import router as auth_router
+from stoa_server.routers.platform import router as platform_router
 from stoa_shared import HealthResponse, ReadinessResponse, ServiceStatus
 
 
@@ -37,13 +44,22 @@ def create_app() -> FastAPI:
         return HealthResponse(version=__version__)
 
     @router.get("/ready", response_model=ReadinessResponse, tags=["operations"])
-    async def ready() -> ReadinessResponse:
+    def ready(session: Annotated[Session, Depends(get_session)]) -> ReadinessResponse:
+        try:
+            session.execute(text("SELECT 1"))
+        except SQLAlchemyError as error:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="database unavailable",
+            ) from error
         return ReadinessResponse(
             status=ServiceStatus.READY,
-            checks={"application": ServiceStatus.READY},
+            checks={"application": ServiceStatus.READY, "database": ServiceStatus.READY},
         )
 
     application.include_router(router)
+    application.include_router(auth_router, prefix="/api/v1")
+    application.include_router(platform_router, prefix="/api/v1")
     return application
 
 
