@@ -149,6 +149,11 @@ class WebScanPolicyConfiguration(ApiModel):
     allow_zap_import: bool = False
 
 
+class FirewallSimulatorPolicyConfiguration(ApiModel):
+    max_rules: int = Field(default=250, ge=1, le=1000)
+    max_packets: int = Field(default=500, ge=1, le=5000)
+
+
 class ModulePolicyResponse(ApiModel):
     id: UUID
     team_id: UUID
@@ -176,6 +181,8 @@ class JobCreate(ApiModel):
             PacketCaptureJobConfiguration.model_validate(self.configuration)
         if self.module_id == "web-scanner":
             WebScanJobConfiguration.model_validate(self.configuration)
+        if self.module_id == "firewall-simulator":
+            FirewallSimulationJobConfiguration.model_validate(self.configuration)
         return self
 
 
@@ -373,6 +380,77 @@ class WebFindingResponse(WebFindingCreate):
 class WebScanResultResponse(ApiModel):
     job: JobResponse
     findings: list[WebFindingResponse]
+
+
+class FirewallPortRangeModel(ApiModel):
+    start: int = Field(ge=1, le=65535)
+    end: int = Field(ge=1, le=65535)
+
+    @model_validator(mode="after")
+    def range_is_ordered(self) -> "FirewallPortRangeModel":
+        if self.start > self.end:
+            raise ValueError("port range must be ordered")
+        return self
+
+
+class FirewallRuleModel(ApiModel):
+    order: int = Field(ge=1, le=10_000)
+    name: str = Field(min_length=1, max_length=160)
+    direction: str = Field(pattern=r"^(inbound|outbound)$")
+    action: str = Field(pattern=r"^(allow|block)$")
+    protocol: str = Field(default="any", pattern=r"^(tcp|udp|icmp|any)$")
+    source: str = Field(default="0.0.0.0/0", min_length=1, max_length=64)
+    destination: str = Field(default="0.0.0.0/0", min_length=1, max_length=64)
+    source_ports: list[FirewallPortRangeModel] = Field(default_factory=list, max_length=50)
+    destination_ports: list[FirewallPortRangeModel] = Field(default_factory=list, max_length=50)
+    enabled: bool = True
+
+
+class FirewallPacketModel(ApiModel):
+    direction: str = Field(pattern=r"^(inbound|outbound)$")
+    protocol: str = Field(pattern=r"^(tcp|udp|icmp)$")
+    source: str = Field(min_length=1, max_length=64)
+    destination: str = Field(min_length=1, max_length=64)
+    source_port: int | None = Field(default=None, ge=1, le=65535)
+    destination_port: int | None = Field(default=None, ge=1, le=65535)
+
+
+class FirewallSimulationJobConfiguration(ApiModel):
+    default_action: str = Field(default="block", pattern=r"^(allow|block)$")
+    rules: list[FirewallRuleModel] = Field(min_length=1, max_length=1000)
+    packets: list[FirewallPacketModel] = Field(default_factory=list, max_length=5000)
+    generate_test_packets: bool = True
+
+
+class FirewallPolicyAnalysisModel(ApiModel):
+    shadowed_rules: list[dict[str, str | int]]
+    conflicting_rules: list[dict[str, str | int]]
+
+
+class FirewallSimulationObservationCreate(ApiModel):
+    packet: FirewallPacketModel
+    action: str = Field(pattern=r"^(allow|block)$")
+    matched_rule: str | None = Field(default=None, max_length=160)
+    explanation: str = Field(min_length=1, max_length=2000)
+
+
+class FirewallSimulationResultCreate(ApiModel):
+    executing_endpoint_id: UUID
+    analysis: FirewallPolicyAnalysisModel
+    observations: list[FirewallSimulationObservationCreate] = Field(max_length=5000)
+    cancelled: bool = False
+
+
+class FirewallSimulationObservationResponse(FirewallSimulationObservationCreate):
+    id: UUID
+    job_id: UUID
+    created_at: datetime
+
+
+class FirewallSimulationResultResponse(ApiModel):
+    job: JobResponse
+    analysis: FirewallPolicyAnalysisModel | None = None
+    observations: list[FirewallSimulationObservationResponse]
 
 
 class AlertResponse(ApiModel):

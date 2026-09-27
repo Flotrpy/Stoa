@@ -206,6 +206,17 @@ class WebScanObservation(IdentityMixin, TimestampMixin, Base):
     remediation: Mapped[str] = mapped_column(Text)
 
 
+class FirewallSimulationObservation(IdentityMixin, TimestampMixin, Base):
+    __tablename__ = "firewall_simulation_observations"
+
+    team_id: Mapped[UUID] = mapped_column(ForeignKey("teams.id", ondelete="CASCADE"))
+    job_id: Mapped[UUID] = mapped_column(ForeignKey("jobs.id", ondelete="CASCADE"))
+    packet: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    action: Mapped[str] = mapped_column(String(24))
+    matched_rule: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    explanation: Mapped[str] = mapped_column(Text)
+
+
 class Finding(IdentityMixin, TimestampMixin, Base):
     __tablename__ = "findings"
 

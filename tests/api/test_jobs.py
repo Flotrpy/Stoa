@@ -340,3 +340,119 @@ def test_web_scan_policy_results_and_reports(
     assert "STOA-WEB-005" in text_report.text
     assert alerts.json()[0]["title"] == "Reflected input marker in response body"
     assert "secret" not in str(result.json()).casefold()
+
+
+def test_firewall_simulation_policy_results_and_report(
+    client: TestClient, admin_headers: dict[str, str]
+) -> None:
+    endpoint_id, scope_id = prepare_authorized_job(
+        client, admin_headers, module_id="firewall-simulator"
+    )
+    base = {
+        "module_id": "firewall-simulator",
+        "executing_endpoint_id": endpoint_id,
+        "authorization_scope_id": scope_id,
+        "target": "127.0.0.1",
+        "business_justification": "Review proposed firewall policy behavior",
+    }
+    rules = [
+        {
+            "order": 1,
+            "name": "Allow HTTPS",
+            "direction": "outbound",
+            "action": "allow",
+            "protocol": "tcp",
+            "source": "192.0.2.0/24",
+            "destination": "198.51.100.10/32",
+            "destination_ports": [{"start": 443, "end": 443}],
+        }
+    ]
+    client.put(
+        "/api/v1/module-policies/firewall-simulator",
+        headers=admin_headers,
+        json={"enabled": True, "configuration": {"max_rules": 1, "max_packets": 1}},
+    )
+    too_many_packets = client.post(
+        "/api/v1/jobs",
+        headers=admin_headers,
+        json={
+            **base,
+            "configuration": {
+                "default_action": "block",
+                "rules": rules,
+                "packets": [
+                    {
+                        "direction": "outbound",
+                        "protocol": "tcp",
+                        "source": "192.0.2.15",
+                        "destination": "198.51.100.10",
+                        "source_port": 50000,
+                        "destination_port": 443,
+                    },
+                    {
+                        "direction": "outbound",
+                        "protocol": "tcp",
+                        "source": "192.0.2.15",
+                        "destination": "198.51.100.20",
+                        "source_port": 50000,
+                        "destination_port": 443,
+                    },
+                ],
+            },
+        },
+    )
+    job = client.post(
+        "/api/v1/jobs",
+        headers=admin_headers,
+        json={
+            **base,
+            "configuration": {
+                "default_action": "block",
+                "rules": rules,
+                "packets": [
+                    {
+                        "direction": "outbound",
+                        "protocol": "tcp",
+                        "source": "192.0.2.15",
+                        "destination": "198.51.100.10",
+                        "source_port": 50000,
+                        "destination_port": 443,
+                    }
+                ],
+            },
+        },
+    )
+    result = client.post(
+        f"/api/v1/jobs/{job.json()['id']}/firewall-simulation-results",
+        headers=admin_headers,
+        json={
+            "executing_endpoint_id": endpoint_id,
+            "analysis": {"shadowed_rules": [], "conflicting_rules": []},
+            "observations": [
+                {
+                    "packet": {
+                        "direction": "outbound",
+                        "protocol": "tcp",
+                        "source": "192.0.2.15",
+                        "destination": "198.51.100.10",
+                        "source_port": 50000,
+                        "destination_port": 443,
+                    },
+                    "action": "allow",
+                    "matched_rule": "Allow HTTPS",
+                    "explanation": "Rule 1 is the first match and allows the packet.",
+                }
+            ],
+        },
+    )
+    text_report = client.get(
+        f"/api/v1/jobs/{job.json()['id']}/firewall-simulation-report?format=text",
+        headers=admin_headers,
+    )
+
+    assert too_many_packets.status_code == 403
+    assert job.status_code == 201
+    assert result.status_code == 201
+    assert result.json()["observations"][0]["action"] == "allow"
+    assert text_report.status_code == 200
+    assert "Allow HTTPS" in text_report.text

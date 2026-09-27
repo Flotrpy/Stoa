@@ -21,6 +21,7 @@ from stoa_server.models import (
     Endpoint,
     EndpointState,
     Finding,
+    FirewallSimulationObservation,
     Job,
     JobState,
     ModulePolicy,
@@ -44,6 +45,11 @@ from stoa_shared.domain import (
     ClientEventCreate,
     EndpointCreate,
     EndpointResponse,
+    FirewallSimulationJobConfiguration,
+    FirewallSimulationObservationResponse,
+    FirewallSimulationResultCreate,
+    FirewallSimulationResultResponse,
+    FirewallSimulatorPolicyConfiguration,
     JobCreate,
     JobResponse,
     MemberCreate,
@@ -318,6 +324,10 @@ def upsert_policy(
         configuration = PacketAnalysisPolicyConfiguration.model_validate(configuration).model_dump()
     if module_id == "web-scanner":
         configuration = WebScanPolicyConfiguration.model_validate(configuration).model_dump()
+    if module_id == "firewall-simulator":
+        configuration = FirewallSimulatorPolicyConfiguration.model_validate(
+            configuration
+        ).model_dump()
     policy = session.scalar(
         select(ModulePolicy).where(
             ModulePolicy.team_id == principal.team.id, ModulePolicy.module_id == module_id
@@ -437,6 +447,16 @@ def create_job(
             / authorized.scope.rate_policy["max_requests"],
             1 / scan.max_requests_per_second,
         )
+    if payload.module_id == "firewall-simulator":
+        simulation = FirewallSimulationJobConfiguration.model_validate(configuration)
+        firewall_policy = FirewallSimulatorPolicyConfiguration.model_validate(
+            authorized.policy.configuration
+        )
+        if len(simulation.rules) > firewall_policy.max_rules:
+            raise HTTPException(status_code=403, detail="rule count exceeds module policy")
+        if len(simulation.packets) > firewall_policy.max_packets:
+            raise HTTPException(status_code=403, detail="packet count exceeds module policy")
+        configuration = simulation.model_dump()
 
     job = Job(
         team_id=principal.team.id,
@@ -718,6 +738,125 @@ def get_web_scan_report(
         lines.append(f"{item.severity:<9} {item.confidence:<11.2f} {item.rule_id:<13} {item.url}")
         lines.append(f"  {item.title}")
         lines.append(f"  Remediation: {item.remediation}")
+    return Response(content="\n".join(lines) + "\n", media_type="text/plain")
+
+
+def _firewall_job(session: Session, principal: Principal, job_id: UUID) -> Job:
+    job = session.scalar(select(Job).where(Job.id == job_id, Job.team_id == principal.team.id))
+    if job is None or job.module_id != "firewall-simulator":
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="firewall simulation job not found"
+        )
+    return job
+
+
+@router.post(
+    "/jobs/{job_id}/firewall-simulation-results",
+    response_model=FirewallSimulationResultResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_firewall_simulation_results(
+    job_id: UUID,
+    payload: FirewallSimulationResultCreate,
+    principal: Annotated[Principal, Depends(require_permission(Permission.RUN_JOBS))],
+    session: Annotated[Session, Depends(get_session)],
+) -> FirewallSimulationResultResponse:
+    job = _firewall_job(session, principal, job_id)
+    if payload.executing_endpoint_id != job.executing_endpoint_id:
+        raise HTTPException(status_code=403, detail="endpoint mismatch")
+    if job.state not in {JobState.QUEUED, JobState.RUNNING, JobState.CANCELLING}:
+        raise HTTPException(status_code=409, detail="job is already final")
+    observations = [
+        FirewallSimulationObservation(
+            team_id=principal.team.id,
+            job_id=job.id,
+            packet=item.packet.model_dump(),
+            action=item.action,
+            matched_rule=item.matched_rule,
+            explanation=item.explanation,
+        )
+        for item in payload.observations
+    ]
+    session.add_all(observations)
+    job.state = JobState.CANCELLED if payload.cancelled else JobState.SUCCEEDED
+    record_audit_event(
+        session,
+        team_id=principal.team.id,
+        actor_user_id=principal.user.id,
+        action="firewall_simulation.results_recorded",
+        resource_type="job",
+        resource_id=str(job.id),
+        correlation_id=job.correlation_id,
+        event_data={
+            "observation_count": len(observations),
+            "shadowed_rules": len(payload.analysis.shadowed_rules),
+            "conflicting_rules": len(payload.analysis.conflicting_rules),
+            "cancelled": payload.cancelled,
+        },
+    )
+    session.commit()
+    return FirewallSimulationResultResponse(
+        job=JobResponse.model_validate(job),
+        analysis=payload.analysis,
+        observations=[
+            FirewallSimulationObservationResponse.model_validate(item) for item in observations
+        ],
+    )
+
+
+@router.get(
+    "/jobs/{job_id}/firewall-simulation-results",
+    response_model=FirewallSimulationResultResponse,
+)
+def get_firewall_simulation_results(
+    job_id: UUID,
+    principal: Annotated[Principal, Depends(require_permission(Permission.VIEW))],
+    session: Annotated[Session, Depends(get_session)],
+) -> FirewallSimulationResultResponse:
+    job = _firewall_job(session, principal, job_id)
+    observations = list(
+        session.scalars(
+            select(FirewallSimulationObservation)
+            .where(
+                FirewallSimulationObservation.job_id == job.id,
+                FirewallSimulationObservation.team_id == principal.team.id,
+            )
+            .order_by(FirewallSimulationObservation.created_at)
+        )
+    )
+    return FirewallSimulationResultResponse(
+        job=JobResponse.model_validate(job),
+        observations=[
+            FirewallSimulationObservationResponse.model_validate(item) for item in observations
+        ],
+    )
+
+
+@router.get("/jobs/{job_id}/firewall-simulation-report")
+def get_firewall_simulation_report(
+    job_id: UUID,
+    principal: Annotated[Principal, Depends(require_permission(Permission.VIEW))],
+    session: Annotated[Session, Depends(get_session)],
+    format: Annotated[str, Query(pattern=r"^(json|text)$")] = "json",
+) -> Response:
+    result = get_firewall_simulation_results(job_id, principal, session)
+    if format == "json":
+        return Response(content=result.model_dump_json(indent=2), media_type="application/json")
+    lines = [
+        f"Stoá firewall simulation report: {result.job.target}",
+        f"Job: {result.job.id}",
+        f"State: {result.job.state}",
+        "",
+        "ACTION   MATCHED RULE                 PACKET",
+    ]
+    for item in result.observations:
+        packet = item.packet
+        lines.append(
+            f"{item.action:<8} {(item.matched_rule or 'default'):<28} "
+            f"{packet.protocol} {packet.source}:{packet.source_port or '-'} -> "
+            f"{packet.destination}:{packet.destination_port or '-'}"
+        )
+        lines.append(f"  {item.explanation}")
     return Response(content="\n".join(lines) + "\n", media_type="text/plain")
 
 
