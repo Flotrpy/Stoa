@@ -163,6 +163,21 @@ class JobResponse(ApiModel):
     created_at: datetime
 
 
+class ClientEventCreate(ApiModel):
+    event_type: str = Field(pattern=r"^(endpoint\.status|job\.progress|desktop\.diagnostic)$")
+    payload: dict[str, str | int | float | bool | None]
+
+    @field_validator("payload")
+    @classmethod
+    def payload_is_safe_metadata(
+        cls, value: dict[str, str | int | float | bool | None]
+    ) -> dict[str, str | int | float | bool | None]:
+        forbidden = {"password", "token", "secret", "hash", "payload", "ciphertext"}
+        if len(value) > 30 or any(key.casefold() in forbidden for key in value):
+            raise ValueError("payload must contain bounded non-sensitive metadata")
+        return value
+
+
 class AuditEventResponse(ApiModel):
     id: UUID
     actor_user_id: UUID | None
