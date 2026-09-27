@@ -50,3 +50,43 @@ jobs:
       - uses: actions/checkout@v5
       - name: Validate Compose model
         run: docker compose config --quiet
+
+  postgres-migrations:
+    name: PostgreSQL migration cycle
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17.6-alpine
+        env:
+          POSTGRES_DB: stoa_test
+          POSTGRES_USER: stoa
+          POSTGRES_PASSWORD: ci-only-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U stoa -d stoa_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 12
+    env:
+      STOA_DATABASE_URL: postgresql+psycopg://stoa:ci-only-password@127.0.0.1:5432/stoa_test
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - uses: actions/setup-python@v6
+        with:
+          python-version-file: .python-version
+          cache: pip
+          cache-dependency-path: requirements/*.txt
+      - name: Install npm metadata
+        run: npm ci
+      - name: Bootstrap Python environment
+        run: npm run setup
+      - name: Verify upgrade downgrade upgrade
+        run: |
+          .venv/bin/python -m alembic upgrade head
+          .venv/bin/python -m alembic downgrade base
+          .venv/bin/python -m alembic upgrade head
