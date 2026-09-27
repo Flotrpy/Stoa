@@ -14,7 +14,7 @@ PR 4 — Port and service scanner: open, green, and awaiting review.
 
 PR 5 — Packet analysis and IDS: open, green, and awaiting review.
 
-PR 6 — Web security scanner: implementation complete locally on a stacked branch and undergoing final verification.
+PR 6 — Web security scanner: open, green, and awaiting review.
 
 ## Repository inspection
 
@@ -53,6 +53,7 @@ PR 6 implements same-origin crawling, URL/link/form/input/cookie/header/paramete
 - PR 5 hosted workflow: passed Windows, Ubuntu, Compose validation, and PostgreSQL migration lifecycle checks.
 - PR 6 focused tests: passed web scanner unit tests, API job/report tests, desktop smoke, and migration cycle; subset coverage gate is expected to fail when only focused tests run.
 - PR 6 `npm run build`: passed formatting, Ruff, strict mypy, 58 tests at 76.81% coverage, Bandit, dependency audit, secret scan, source/wheel builds, and packaging validation.
+- PR 6 hosted workflow: passed Windows, Ubuntu, Compose validation, and PostgreSQL migration lifecycle checks.
 - Docker Compose model validation: passed in hosted CI. Local runtime validation remains unavailable because Docker is not installed on the current workstation.
 - Windows verification: passed locally and in hosted CI. Linux verification: passed in hosted CI after declaring the required `libegl1` desktop runtime package.
 
