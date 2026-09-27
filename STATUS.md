@@ -8,7 +8,7 @@ PR 1 — Foundation: open, green, and awaiting review.
 
 PR 2 — Identity and shared platform: open, green, and awaiting review.
 
-PR 3 — Desktop foundation: implementation and local verification complete on a stacked branch with explicit user authorization; hosted verification is pending.
+PR 3 — Desktop foundation: open, green, and awaiting review.
 
 ## Repository inspection
 
@@ -33,6 +33,7 @@ PR 3 adds first-run connection, secure token storage, endpoint enrollment, backg
 - PR 1 `npm run build`: passed formatting, Ruff, strict mypy, 13 tests, 83.19% coverage, Bandit, pip-audit with zero known vulnerabilities, secret scanning, wheel/sdist creation, and artifact validation.
 - PR 2 hosted workflow: passed Windows, Ubuntu, Compose validation, and PostgreSQL migration lifecycle checks.
 - PR 3 `npm run build`: passed formatting, Ruff, strict mypy, 41 tests at 81.62% coverage, Bandit, dependency audit, secret scan, source/wheel builds, and packaging validation.
+- PR 3 hosted workflow: passed Windows, Ubuntu, Compose validation, and PostgreSQL migration lifecycle checks.
 - Docker Compose model validation: passed in hosted CI. Local runtime validation remains unavailable because Docker is not installed on the current workstation.
 - Windows verification: passed locally and in hosted CI. Linux verification: passed in hosted CI after declaring the required `libegl1` desktop runtime package.
 
