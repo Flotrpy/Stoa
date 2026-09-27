@@ -16,6 +16,8 @@ PR 5 — Packet analysis and IDS: open, green, and awaiting review.
 
 PR 6 — Web security scanner: open, green, and awaiting review.
 
+PR 7 — Firewall simulator: implementation complete locally on a stacked branch and undergoing final verification.
+
 ## Repository inspection
 
 - Starting state: empty Git repository on `master`, no commits, no configured remote.
@@ -38,6 +40,8 @@ PR 5 implements authorized interface capture, protocol metadata views, local rot
 
 PR 6 implements same-origin crawling, URL/link/form/input/cookie/header/parameter discovery, passive header/cookie checks, bounded canary-based active indicators, optional local ZAP metadata import, central policy enforcement, redacted findings, JSON/text reports, and a desktop workflow. It does not perform cross-origin scanning, exploit delivery, credential attacks, time-delay SQL probes, or broad broken-authentication claims.
 
+PR 7 implements ordered allow/block simulation, TCP/UDP/ICMP/any matching, source/destination CIDR and port ranges, first-match decisions, default policy, validation, shadow/conflict analysis, generated packets, packet-metadata replay, import/export, central reports, and a desktop workflow. It never mutates host firewall configuration.
+
 ## Verification evidence
 
 - `npm install`: passed; npm dependency audit reported zero findings.
@@ -54,6 +58,8 @@ PR 6 implements same-origin crawling, URL/link/form/input/cookie/header/paramete
 - PR 6 focused tests: passed web scanner unit tests, API job/report tests, desktop smoke, and migration cycle; subset coverage gate is expected to fail when only focused tests run.
 - PR 6 `npm run build`: passed formatting, Ruff, strict mypy, 58 tests at 76.81% coverage, Bandit, dependency audit, secret scan, source/wheel builds, and packaging validation.
 - PR 6 hosted workflow: passed Windows, Ubuntu, Compose validation, and PostgreSQL migration lifecycle checks.
+- PR 7 focused tests: passed firewall simulator unit tests, API job/report tests, desktop smoke, and migration cycle; subset coverage gate is expected to fail when only focused tests run.
+- PR 7 `npm run build`: passed formatting, Ruff, strict mypy, 61 tests at 76.13% coverage, Bandit, dependency audit, secret scan, source/wheel builds, and packaging validation.
 - Docker Compose model validation: passed in hosted CI. Local runtime validation remains unavailable because Docker is not installed on the current workstation.
 - Windows verification: passed locally and in hosted CI. Linux verification: passed in hosted CI after declaring the required `libegl1` desktop runtime package.
 
