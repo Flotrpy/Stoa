@@ -4,7 +4,7 @@ Updated: 2026-09-27
 
 ## Current phase
 
-PR 1 — Foundation: implementation and verification in progress.
+PR 1 — Foundation: locally verified and ready for review.
 
 ## Repository inspection
 
@@ -18,6 +18,14 @@ PR 1 — Foundation: implementation and verification in progress.
 
 Only foundation capabilities are currently implemented. Identity, enrollment, persistent data, security modules, secure chat, native installers, and production operations remain scheduled for PRs 2–10. Disabled future navigation items identify the planned information architecture without pretending those workflows exist.
 
+## Verification evidence
+
+- `npm install`: passed; npm dependency audit reported zero findings.
+- `npm run setup`: passed with Python 3.12.10 and an isolated `.venv`.
+- `npm run build`: passed formatting, Ruff, strict mypy, 13 tests, 83.19% coverage, Bandit, pip-audit with zero known vulnerabilities, secret scanning, wheel/sdist creation, and artifact validation.
+- Docker Compose runtime validation: pending hosted CI because Docker is not installed on the current workstation.
+- Windows local verification: passed. Linux verification: pending hosted CI.
+
 ## Major delivery risks
 
 - The complete product is substantially larger than one review cycle; safety and quality require the ten-PR sequence in `PLAN.md`.
@@ -28,4 +36,3 @@ Only foundation capabilities are currently implemented. Identity, enrollment, pe
 - Dependency auditing may expose upstream issues; releases cannot waive unexplained high-severity findings.
 - Docker is unavailable on the current workstation, so Compose validation must be completed in CI or on a Docker-enabled host.
 - The requirement for 100 meaningful commits is a target, not permission to fragment work artificially; the ledger will report any responsible shortfall.
-
