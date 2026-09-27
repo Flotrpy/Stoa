@@ -29,3 +29,21 @@ Raw captures, packet payloads, password material, filesystem evidence, sensitive
 Status: accepted · 2026-09-27
 
 Stoá uses a restrained operations-console aesthetic with dense, readable surfaces, minimal decoration, and exactly two user-selectable themes. Feature UI research will occur after backend contracts are stable so visual work reflects real workflows rather than decorative mockups.
+
+## ADR-006 — Short-lived team-scoped tokens with live membership checks
+
+Status: accepted · 2026-09-27
+
+Access tokens identify a user and one team but do not carry authoritative permissions. Each request reloads active membership and role from PostgreSQL. This adds one indexed lookup while ensuring user deactivation, membership removal, and role changes apply immediately.
+
+## ADR-007 — Explicit target matching without wildcards
+
+Status: accepted · 2026-09-27
+
+Authorization scopes initially match exact hosts, IP networks, or exact-origin URL path prefixes. General wildcard and regular-expression matching are excluded because ambiguous patterns make authorization review and boundary testing unreliable.
+
+## ADR-008 — Hash-chained append-oriented audit events
+
+Status: accepted · 2026-09-27
+
+Each team audit event stores a SHA-256 digest covering its canonical fields and the previous event digest. This detects offline mutation or deletion when a trusted checkpoint exists. It does not replace database access controls, backups, or future external checkpointing.

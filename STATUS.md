@@ -4,7 +4,9 @@ Updated: 2026-09-27
 
 ## Current phase
 
-PR 1 — Foundation: locally verified and ready for review.
+PR 1 — Foundation: open, green, and awaiting review.
+
+PR 2 — Identity and shared platform: implementation and local verification in progress on a stacked branch with explicit user authorization.
 
 ## Repository inspection
 
@@ -17,6 +19,8 @@ PR 1 — Foundation: locally verified and ready for review.
 ## Scope truth
 
 Only foundation capabilities are currently implemented. Identity, enrollment, persistent data, security modules, secure chat, native installers, and production operations remain scheduled for PRs 2–10. Disabled future navigation items identify the planned information architecture without pretending those workflows exist.
+
+PR 2 now implements the central identity and authorization layer, but it is not yet merged. Security-module execution remains absent; only authorization-gated job metadata can be queued.
 
 ## Verification evidence
 

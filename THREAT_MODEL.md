@@ -39,4 +39,17 @@ This initial model covers the desktop agent, central API, workers, database, loc
 
 ## Open analysis
 
-PR 2 will add data-flow diagrams and STRIDE analysis for identity and job coordination. Each module PR adds abuse cases and parser-specific risks. PR 10 requires an independent cryptographic review before production claims.
+The identity and job-coordination STRIDE analysis follows below. Each module PR adds abuse cases and parser-specific risks. PR 10 requires an independent cryptographic review before production claims.
+
+## Identity and job-coordination analysis
+
+| STRIDE category | Identity/job threat | Control |
+| --- | --- | --- |
+| Spoofing | Stolen password or forged token | Argon2 hashes, signed short-lived tokens, issuer/type/expiry validation, production secret validation |
+| Tampering | Role or audit-row modification | Current database membership checks, least-privilege DB deployment, hash-chained audit events, backups |
+| Repudiation | User denies creating a scope or job | Actor, resource, correlation ID, timestamp, and redacted decision data in the audit chain |
+| Information disclosure | Cross-team identifier probing or secret logging | Team predicates on every query, 404 for mismatched team paths, generic authentication errors, no secrets in event data |
+| Denial of service | Oversized or unbounded job requests | Pydantic bounds, rate-policy limits, pagination caps, later queue concurrency controls |
+| Elevation of privilege | Viewer invokes an administrator route; stale token retains old role | Server-side permission dependencies and live user/membership/role lookup on every request |
+
+Residual risks include online password guessing until endpoint rate limiting is added, single-secret HS256 key rotation, concurrent audit-chain append ordering, and database administrator compromise. These are tracked for authentication hardening and operational delivery before production readiness.
