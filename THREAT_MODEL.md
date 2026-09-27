@@ -66,3 +66,16 @@ Residual risks include online password guessing until endpoint rate limiting is 
 | Elevation of privilege | Desktop controls imply authority or enrollment enables execution | UI is never an authorization boundary; enrollment begins pending and all protected actions are enforced centrally |
 
 Residual desktop risks include the security of the user account backing the OS credential vault, lack of token refresh/rotation, and queued-event growth during a prolonged outage. Operational retention, refresh tokens, and device-bound identity are deferred to production hardening in PR 10.
+
+## Port scanner analysis
+
+| STRIDE category | Scanner threat | Control |
+| --- | --- | --- |
+| Spoofing | Scanner targets a host other than the reviewed scope | Exact server scope check, target copied into immutable authorization context, worker target equality check, one pinned IPv4 resolution |
+| Tampering | Client raises port count, concurrency, method, or banner collection after approval | Strict schemas, server-normalized configuration, module-policy caps, centrally derived minimum interval |
+| Repudiation | Operator denies launching or submitting a scan | Actor, endpoint, scope, correlation ID, result counts, and completion state are recorded in the hash-chained audit log |
+| Information disclosure | Banner contains control data or excessive service detail | Receive-only reads, 512-byte read ceiling, printable normalization, 256-character persistence bound, optional policy disable |
+| Denial of service | Wide, concurrent, rapid, or long-timeout probing | 1,024-port hard limit, concurrency/rate/timeout caps, scope rate interval, cancellation, no flooding modes |
+| Elevation of privilege | Unprivileged UI silently starts raw-packet scanning | TCP connect is default; SYN is a separate adapter requiring central opt-in and explicit local privilege confirmation |
+
+Residual risks include DNS changes before initial resolution, OS-specific firewall classification differences, Scapy/Npcap platform behavior, and service misidentification from conventional ports or untrusted banners. Reports describe observations rather than claiming proof of a service or vulnerability.

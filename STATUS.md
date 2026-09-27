@@ -10,6 +10,8 @@ PR 2 — Identity and shared platform: open, green, and awaiting review.
 
 PR 3 — Desktop foundation: open, green, and awaiting review.
 
+PR 4 — Port and service scanner: implementation and local verification in progress on a stacked branch with explicit user authorization.
+
 ## Repository inspection
 
 - Starting state: empty Git repository on `master`, no commits, no configured remote.
@@ -26,6 +28,8 @@ PR 2 now implements the central identity and authorization layer, but it is not 
 
 PR 3 adds first-run connection, secure token storage, endpoint enrollment, background API work, authenticated realtime transport, crash-safe local preferences, safe offline metadata queueing, explicit connectivity state, settings, and light/dark themes. It stores no passwords, raw evidence, capture data, private keys, or plaintext chat.
 
+PR 4 implements bounded TCP-connect scanning and an explicitly privileged SYN adapter, pinned IPv4 resolution, cancellation, progress, safe receive-only banners, service identification, central policy enforcement, structured observations, JSON/text reports, and the first complete module workflow. Stealth, evasion, address spoofing, exploit delivery, and denial-of-service options are absent.
+
 ## Verification evidence
 
 - `npm install`: passed; npm dependency audit reported zero findings.
@@ -34,6 +38,7 @@ PR 3 adds first-run connection, secure token storage, endpoint enrollment, backg
 - PR 2 hosted workflow: passed Windows, Ubuntu, Compose validation, and PostgreSQL migration lifecycle checks.
 - PR 3 `npm run build`: passed formatting, Ruff, strict mypy, 41 tests at 81.62% coverage, Bandit, dependency audit, secret scan, source/wheel builds, and packaging validation.
 - PR 3 hosted workflow: passed Windows, Ubuntu, Compose validation, and PostgreSQL migration lifecycle checks.
+- PR 4 `npm run build`: passed formatting, Ruff, strict mypy, 49 tests at 78.16% coverage, Bandit, dependency audit, secret scan, source/wheel builds, and packaging validation.
 - Docker Compose model validation: passed in hosted CI. Local runtime validation remains unavailable because Docker is not installed on the current workstation.
 - Windows verification: passed locally and in hosted CI. Linux verification: passed in hosted CI after declaring the required `libegl1` desktop runtime package.
 

@@ -53,3 +53,9 @@ Each team audit event stores a SHA-256 digest covering its canonical fields and 
 Status: accepted · 2026-09-27
 
 The desktop stores access tokens through the operating-system credential vault and keeps non-secret preferences in an atomically replaced JSON file. Disconnected operational metadata uses a local SQLite queue with field-name rejection, a small server event allowlist, bounded flat payloads, and stop-on-first-failure retry behavior. Passwords, tokens, hashes, packet data, private keys, ciphertext, and raw evidence are never valid queue content.
+
+## ADR-010 — Connect scanning by default; SYN requires explicit policy and privilege
+
+Status: accepted · 2026-09-27
+
+The port scanner defaults to ordinary TCP connections from the endpoint's real address. SYN scanning is isolated in a privileged Scapy adapter and requires both central `allow_syn` policy and an explicit local privilege confirmation. The adapter sends a reset after an open response and exposes no source spoofing, timing evasion, fragmentation, decoys, or stealth controls. Hostnames resolve once to one pinned IPv4 address for a scan.
