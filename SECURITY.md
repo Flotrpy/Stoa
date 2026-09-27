@@ -23,4 +23,3 @@ No production version has been released. Security fixes currently target the act
 - Treat dependency-audit failures as release blockers until assessed and documented.
 
 Run `npm run security` before submitting a change.
-

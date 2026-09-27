@@ -23,4 +23,3 @@
     "server:down": "node scripts/task.mjs server-down"
   }
 }
-

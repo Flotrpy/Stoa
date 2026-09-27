@@ -839,4 +839,3 @@ Start by inspecting the repository and reporting:
 - PR 1 acceptance criteria
 
 Do not implement later pull requests yet. After the inspection and plan are clear, execute PR 1 completely, verify it, and prepare it for review.
-

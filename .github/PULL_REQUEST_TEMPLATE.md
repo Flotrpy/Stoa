@@ -26,4 +26,3 @@
 - [ ] Tests use only safe fixtures or explicitly authorized lab targets.
 - [ ] `npm run build` passes.
 - [ ] Documentation, status, decisions, and ledger are current.
-

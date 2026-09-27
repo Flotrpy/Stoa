@@ -40,4 +40,3 @@ This initial model covers the desktop agent, central API, workers, database, loc
 ## Open analysis
 
 PR 2 will add data-flow diagrams and STRIDE analysis for identity and job coordination. Each module PR adds abuse cases and parser-specific risks. PR 10 requires an independent cryptographic review before production claims.
-

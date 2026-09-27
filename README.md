@@ -38,4 +38,3 @@ The setup command creates `.venv` and installs pinned dependencies. On Windows, 
 | `npm run server:down` | Stop the local Docker Compose stack |
 
 Full development instructions live in `docs/development.md`.
-

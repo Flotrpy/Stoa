@@ -21,4 +21,3 @@ Package responsibilities:
 - `stoa_platform`: Windows/Linux adapters isolated from domain logic.
 
 The control plane coordinates; it does not become a warehouse for sensitive endpoint evidence. Security modules execute close to the authorized asset, produce explainable structured results, and reference local evidence through opaque identifiers. Persistent domain entities and migrations arrive in PR 2 after their policy boundaries are reviewable.
-

@@ -45,4 +45,3 @@ jobs:
       - uses: actions/checkout@v5
       - name: Validate Compose model
         run: docker compose config --quiet
-
