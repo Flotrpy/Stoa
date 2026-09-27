@@ -47,3 +47,9 @@ Authorization scopes initially match exact hosts, IP networks, or exact-origin U
 Status: accepted · 2026-09-27
 
 Each team audit event stores a SHA-256 digest covering its canonical fields and the previous event digest. This detects offline mutation or deletion when a trusted checkpoint exists. It does not replace database access controls, backups, or future external checkpointing.
+
+## ADR-009 — OS vault credentials and non-sensitive offline queue
+
+Status: accepted · 2026-09-27
+
+The desktop stores access tokens through the operating-system credential vault and keeps non-secret preferences in an atomically replaced JSON file. Disconnected operational metadata uses a local SQLite queue with field-name rejection, a small server event allowlist, bounded flat payloads, and stop-on-first-failure retry behavior. Passwords, tokens, hashes, packet data, private keys, ciphertext, and raw evidence are never valid queue content.

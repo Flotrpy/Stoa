@@ -30,3 +30,10 @@ This ledger records meaningful commits only. Hashes and PR numbers are filled af
 | 24 | `9cfc86c` | test: cover identity RBAC authorization and migrations | 2 | API, migration, permission and boundary quality | 27 tests, 89.97% coverage | Pass | Hosted platform matrix |
 | 25 | `7f789ac` | ci: verify PostgreSQL migration lifecycle | 2 | PostgreSQL migration quality gate | Workflow review | Pass, pending hosted run | Hosted result |
 | 26 | `ad0aa6d` | docs: document identity authorization and residual risk | 2 | Identity design, STRIDE, decisions and status | Document review | Pass | PR review |
+| 27 | `c0701dd` | build: add desktop persistence and realtime dependencies | 3 | OS credential vault, platform paths, WebSocket transport | Setup, dependency resolution | Pass | Hosted dependency audit |
+| 28 | `2cf51fa` | feat(desktop): add secure local session foundation | 3 | API client, atomic settings, OS vault, enrollment, background work, offline queue | Ruff, strict mypy, unit tests | Pass | Token refresh in PR 10 |
+| 29 | `6266860` | feat(realtime): add authenticated reconnectable event channel | 3 | Team-bound WebSocket server and reconnecting client | API and unit tests | Pass | Event fan-out with module delivery |
+| 30 | `11d717e` | feat(sync): add bounded offline metadata synchronization | 3 | Allowlisted metadata retry and central audit acceptance | API and unit tests | Pass | Retention limits in PR 10 |
+| 31 | `64277b4` | feat(desktop): add onboarding enrollment and settings workflows | 3 | First-run connection, endpoint enrollment, connectivity UI, settings, themes | Offscreen smoke, strict mypy | Pass | Module screens in PRs 4–10 |
+| 32 | `f0c0ae8` | test(desktop): cover storage transport enrollment and sync | 3 | Desktop persistence, API, realtime, enrollment, sync boundaries | 41 tests, 81.62% coverage | Pass | Hosted Windows/Linux matrix |
+| 33 | `fb2c0f1` | feat(desktop): flush safe metadata after reconnect | 3 | Ordered replay after restored connectivity | Full local build | Pass | Hosted Windows/Linux matrix |
