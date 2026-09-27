@@ -259,3 +259,84 @@ def test_packet_analysis_results_create_deduplicated_metadata_alerts(
     assert alerts.status_code == 200
     assert alerts.json()[0]["severity"] == "medium"
     assert "payload" not in str(alerts.json()).casefold()
+
+
+def test_web_scan_policy_results_and_reports(
+    client: TestClient, admin_headers: dict[str, str]
+) -> None:
+    endpoint_id, scope_id = prepare_authorized_job(client, admin_headers, module_id="web-scanner")
+    base = {
+        "module_id": "web-scanner",
+        "executing_endpoint_id": endpoint_id,
+        "authorization_scope_id": scope_id,
+        "target": "127.0.0.1",
+        "business_justification": "Inspect authorized local lab web metadata",
+    }
+    active_rejected = client.post(
+        "/api/v1/jobs",
+        headers=admin_headers,
+        json={**base, "configuration": {"active_checks": True}},
+    )
+    client.put(
+        "/api/v1/module-policies/web-scanner",
+        headers=admin_headers,
+        json={
+            "enabled": True,
+            "configuration": {
+                "max_depth": 2,
+                "max_pages": 20,
+                "max_requests_per_second": 5,
+                "allow_active_checks": True,
+                "allow_form_submission": True,
+                "allow_zap_import": False,
+            },
+        },
+    )
+    job = client.post(
+        "/api/v1/jobs",
+        headers=admin_headers,
+        json={
+            **base,
+            "configuration": {
+                "max_depth": 1,
+                "max_pages": 5,
+                "active_checks": True,
+                "allow_form_submission": True,
+            },
+        },
+    )
+    assert active_rejected.status_code == 403
+    assert job.status_code == 201
+    result = client.post(
+        f"/api/v1/jobs/{job.json()['id']}/web-scan-results",
+        headers=admin_headers,
+        json={
+            "executing_endpoint_id": endpoint_id,
+            "page_count": 2,
+            "findings": [
+                {
+                    "rule_id": "STOA-WEB-005",
+                    "title": "Reflected input marker in response body",
+                    "category": "web",
+                    "severity": "medium",
+                    "confidence": 0.75,
+                    "url": "http://127.0.0.1/search?q=REDACTED",
+                    "evidence": {"parameter": "q", "marker": "stoa-canary-6b7b4f"},
+                    "remediation": "Encode untrusted input in the response context.",
+                }
+            ],
+        },
+    )
+    text_report = client.get(
+        f"/api/v1/jobs/{job.json()['id']}/web-scan-report?format=text",
+        headers=admin_headers,
+    )
+    alerts = client.get("/api/v1/alerts", headers=admin_headers)
+
+    assert result.status_code == 201
+    assert result.json()["job"]["state"] == "succeeded"
+    assert result.json()["findings"][0]["url"].endswith("q=REDACTED")
+    assert text_report.status_code == 200
+    assert "STOA-WEB-005" in text_report.text
+    assert alerts.json()[0]["title"] == "Reflected input marker in response body"
+    assert "secret" not in str(result.json()).casefold()

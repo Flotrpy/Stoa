@@ -191,6 +191,21 @@ class PortScanObservation(IdentityMixin, TimestampMixin, Base):
     latency_ms: Mapped[float | None] = mapped_column(Float, nullable=True)
 
 
+class WebScanObservation(IdentityMixin, TimestampMixin, Base):
+    __tablename__ = "web_scan_observations"
+
+    team_id: Mapped[UUID] = mapped_column(ForeignKey("teams.id", ondelete="CASCADE"))
+    job_id: Mapped[UUID] = mapped_column(ForeignKey("jobs.id", ondelete="CASCADE"))
+    rule_id: Mapped[str] = mapped_column(String(32))
+    category: Mapped[str] = mapped_column(String(80))
+    title: Mapped[str] = mapped_column(String(240))
+    severity: Mapped[str] = mapped_column(String(24))
+    confidence: Mapped[float] = mapped_column(Float)
+    url: Mapped[str] = mapped_column(String(512))
+    evidence: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    remediation: Mapped[str] = mapped_column(Text)
+
+
 class Finding(IdentityMixin, TimestampMixin, Base):
     __tablename__ = "findings"
 

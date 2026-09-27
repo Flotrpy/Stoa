@@ -140,6 +140,15 @@ class PacketAnalysisPolicyConfiguration(ApiModel):
     allow_live_capture: bool = True
 
 
+class WebScanPolicyConfiguration(ApiModel):
+    max_depth: int = Field(default=3, ge=0, le=5)
+    max_pages: int = Field(default=100, ge=1, le=500)
+    max_requests_per_second: int = Field(default=10, ge=1, le=50)
+    allow_active_checks: bool = False
+    allow_form_submission: bool = False
+    allow_zap_import: bool = False
+
+
 class ModulePolicyResponse(ApiModel):
     id: UUID
     team_id: UUID
@@ -165,6 +174,8 @@ class JobCreate(ApiModel):
             PortScanJobConfiguration.model_validate(self.configuration)
         if self.module_id == "packet-analysis":
             PacketCaptureJobConfiguration.model_validate(self.configuration)
+        if self.module_id == "web-scanner":
+            WebScanJobConfiguration.model_validate(self.configuration)
         return self
 
 
@@ -309,6 +320,59 @@ class PacketAnalysisResultCreate(ApiModel):
         if not set(value) <= supported or any(count < 0 for count in value.values()):
             raise ValueError("protocol counts contain unsupported values")
         return value
+
+
+class WebScanJobConfiguration(ApiModel):
+    max_depth: int = Field(default=2, ge=0, le=5)
+    max_pages: int = Field(default=25, ge=1, le=500)
+    max_requests_per_second: int = Field(default=5, ge=1, le=50)
+    timeout_seconds: float = Field(default=5.0, ge=0.1, le=15)
+    active_checks: bool = False
+    allow_form_submission: bool = False
+    import_zap_alerts: bool = False
+
+
+class WebFindingCreate(ApiModel):
+    rule_id: str = Field(pattern=r"^STOA-WEB-(?:[0-9]{3}|ZAP)$")
+    title: str = Field(min_length=1, max_length=240)
+    category: str = Field(default="web", min_length=1, max_length=80)
+    severity: str = Field(pattern=r"^(info|low|medium|high)$")
+    confidence: float = Field(ge=0, le=1)
+    url: str = Field(min_length=1, max_length=512)
+    evidence: dict[str, str | int | float] = Field(default_factory=dict)
+    remediation: str = Field(min_length=1, max_length=2000)
+
+    @field_validator("evidence")
+    @classmethod
+    def evidence_is_bounded(
+        cls, value: dict[str, str | int | float]
+    ) -> dict[str, str | int | float]:
+        forbidden = {"payload", "body", "cookie", "token", "secret", "password", "hash"}
+        if (
+            len(value) > 20
+            or any(key.casefold() in forbidden for key in value)
+            or any(len(str(item)) > 512 for item in value.values())
+        ):
+            raise ValueError("web evidence is too large or sensitive")
+        return value
+
+
+class WebScanResultCreate(ApiModel):
+    executing_endpoint_id: UUID
+    page_count: int = Field(ge=0, le=500)
+    findings: list[WebFindingCreate] = Field(max_length=10_000)
+    cancelled: bool = False
+
+
+class WebFindingResponse(WebFindingCreate):
+    id: UUID
+    job_id: UUID
+    created_at: datetime
+
+
+class WebScanResultResponse(ApiModel):
+    job: JobResponse
+    findings: list[WebFindingResponse]
 
 
 class AlertResponse(ApiModel):

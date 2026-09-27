@@ -30,6 +30,7 @@ from stoa_server.models import (
     Severity,
     TeamMembership,
     User,
+    WebScanObservation,
 )
 from stoa_server.rbac import Permission, Principal, require_permission
 from stoa_server.routers.auth import ensure_roles
@@ -59,6 +60,11 @@ from stoa_shared.domain import (
     PortScanResultCreate,
     PortScanResultResponse,
     UserResponse,
+    WebFindingResponse,
+    WebScanJobConfiguration,
+    WebScanPolicyConfiguration,
+    WebScanResultCreate,
+    WebScanResultResponse,
 )
 
 router = APIRouter(tags=["platform"])
@@ -310,6 +316,8 @@ def upsert_policy(
         configuration = PortScanPolicyConfiguration.model_validate(configuration).model_dump()
     if module_id == "packet-analysis":
         configuration = PacketAnalysisPolicyConfiguration.model_validate(configuration).model_dump()
+    if module_id == "web-scanner":
+        configuration = WebScanPolicyConfiguration.model_validate(configuration).model_dump()
     policy = session.scalar(
         select(ModulePolicy).where(
             ModulePolicy.team_id == principal.team.id, ModulePolicy.module_id == module_id
@@ -408,6 +416,27 @@ def create_job(
             capture.maximum_file_bytes, packet_policy.maximum_file_bytes
         )
         configuration["retained_files"] = min(capture.retained_files, packet_policy.retained_files)
+    if payload.module_id == "web-scanner":
+        scan = WebScanJobConfiguration.model_validate(configuration)
+        web_policy = WebScanPolicyConfiguration.model_validate(authorized.policy.configuration)
+        if scan.max_depth > web_policy.max_depth:
+            raise HTTPException(status_code=403, detail="crawl depth exceeds module policy")
+        if scan.max_pages > web_policy.max_pages:
+            raise HTTPException(status_code=403, detail="page count exceeds module policy")
+        if scan.max_requests_per_second > web_policy.max_requests_per_second:
+            raise HTTPException(status_code=403, detail="request rate exceeds module policy")
+        if scan.active_checks and not web_policy.allow_active_checks:
+            raise HTTPException(status_code=403, detail="active checks are disabled by policy")
+        if scan.allow_form_submission and not web_policy.allow_form_submission:
+            raise HTTPException(status_code=403, detail="form submission is disabled by policy")
+        if scan.import_zap_alerts and not web_policy.allow_zap_import:
+            raise HTTPException(status_code=403, detail="ZAP import is disabled by policy")
+        configuration = scan.model_dump()
+        configuration["effective_minimum_interval_seconds"] = max(
+            authorized.scope.rate_policy["window_seconds"]
+            / authorized.scope.rate_policy["max_requests"],
+            1 / scan.max_requests_per_second,
+        )
 
     job = Job(
         team_id=principal.team.id,
@@ -545,6 +574,150 @@ def get_port_scan_report(
         lines.append(
             f"{item.port:<8} {item.state:<12} {(item.service or '-'):<19} {item.banner or '-'}"
         )
+    return Response(content="\n".join(lines) + "\n", media_type="text/plain")
+
+
+def _web_scan_job(session: Session, principal: Principal, job_id: UUID) -> Job:
+    job = session.scalar(select(Job).where(Job.id == job_id, Job.team_id == principal.team.id))
+    if job is None or job.module_id != "web-scanner":
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="web scan job not found")
+    return job
+
+
+@router.post(
+    "/jobs/{job_id}/web-scan-results",
+    response_model=WebScanResultResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_web_scan_results(
+    job_id: UUID,
+    payload: WebScanResultCreate,
+    principal: Annotated[Principal, Depends(require_permission(Permission.RUN_JOBS))],
+    session: Annotated[Session, Depends(get_session)],
+) -> WebScanResultResponse:
+    job = _web_scan_job(session, principal, job_id)
+    if payload.executing_endpoint_id != job.executing_endpoint_id:
+        raise HTTPException(status_code=403, detail="endpoint mismatch")
+    if job.state not in {JobState.QUEUED, JobState.RUNNING, JobState.CANCELLING}:
+        raise HTTPException(status_code=409, detail="job is already final")
+    observations = [
+        WebScanObservation(
+            team_id=principal.team.id,
+            job_id=job.id,
+            rule_id=item.rule_id,
+            category=item.category,
+            title=item.title,
+            severity=item.severity,
+            confidence=item.confidence,
+            url=item.url,
+            evidence=item.evidence,
+            remediation=item.remediation,
+        )
+        for item in payload.findings
+    ]
+    session.add_all(observations)
+    alerts_created = 0
+    for item in payload.findings:
+        evidence = json.dumps(item.evidence, sort_keys=True, separators=(",", ":"))
+        finding = Finding(
+            team_id=principal.team.id,
+            job_id=job.id,
+            title=item.title,
+            summary=f"{item.url} Evidence: {evidence}",
+            severity=Severity(item.severity),
+            confidence=item.confidence,
+            remediation=item.remediation,
+        )
+        session.add(finding)
+        session.flush()
+        deduplication_key = hashlib.sha256(
+            f"{item.rule_id}|{item.url}|{evidence}".encode()
+        ).hexdigest()
+        existing = session.scalar(
+            select(Alert).where(
+                Alert.team_id == principal.team.id,
+                Alert.deduplication_key == deduplication_key,
+            )
+        )
+        if existing is None:
+            session.add(
+                Alert(
+                    team_id=principal.team.id,
+                    finding_id=finding.id,
+                    title=item.title,
+                    severity=Severity(item.severity),
+                    confidence=item.confidence,
+                    deduplication_key=deduplication_key,
+                )
+            )
+            alerts_created += 1
+    job.state = JobState.CANCELLED if payload.cancelled else JobState.SUCCEEDED
+    record_audit_event(
+        session,
+        team_id=principal.team.id,
+        actor_user_id=principal.user.id,
+        action="web_scan.results_recorded",
+        resource_type="job",
+        resource_id=str(job.id),
+        correlation_id=job.correlation_id,
+        event_data={
+            "page_count": payload.page_count,
+            "finding_count": len(payload.findings),
+            "alerts_created": alerts_created,
+            "cancelled": payload.cancelled,
+        },
+    )
+    session.commit()
+    return WebScanResultResponse(
+        job=JobResponse.model_validate(job),
+        findings=[WebFindingResponse.model_validate(item) for item in observations],
+    )
+
+
+@router.get("/jobs/{job_id}/web-scan-results", response_model=WebScanResultResponse)
+def get_web_scan_results(
+    job_id: UUID,
+    principal: Annotated[Principal, Depends(require_permission(Permission.VIEW))],
+    session: Annotated[Session, Depends(get_session)],
+) -> WebScanResultResponse:
+    job = _web_scan_job(session, principal, job_id)
+    observations = list(
+        session.scalars(
+            select(WebScanObservation)
+            .where(
+                WebScanObservation.job_id == job.id,
+                WebScanObservation.team_id == principal.team.id,
+            )
+            .order_by(WebScanObservation.severity.desc(), WebScanObservation.created_at)
+        )
+    )
+    return WebScanResultResponse(
+        job=JobResponse.model_validate(job),
+        findings=[WebFindingResponse.model_validate(item) for item in observations],
+    )
+
+
+@router.get("/jobs/{job_id}/web-scan-report")
+def get_web_scan_report(
+    job_id: UUID,
+    principal: Annotated[Principal, Depends(require_permission(Permission.VIEW))],
+    session: Annotated[Session, Depends(get_session)],
+    format: Annotated[str, Query(pattern=r"^(json|text)$")] = "json",
+) -> Response:
+    result = get_web_scan_results(job_id, principal, session)
+    if format == "json":
+        return Response(content=result.model_dump_json(indent=2), media_type="application/json")
+    lines = [
+        f"Stoá web scan report: {result.job.target}",
+        f"Job: {result.job.id}",
+        f"State: {result.job.state}",
+        "",
+        "SEVERITY  CONFIDENCE  RULE          URL",
+    ]
+    for item in result.findings:
+        lines.append(f"{item.severity:<9} {item.confidence:<11.2f} {item.rule_id:<13} {item.url}")
+        lines.append(f"  {item.title}")
+        lines.append(f"  Remediation: {item.remediation}")
     return Response(content="\n".join(lines) + "\n", media_type="text/plain")
 
 
