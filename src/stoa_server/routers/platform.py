@@ -32,6 +32,7 @@ from stoa_shared.domain import (
     AuditEventResponse,
     AuthorizationScopeCreate,
     AuthorizationScopeResponse,
+    ClientEventCreate,
     EndpointCreate,
     EndpointResponse,
     JobCreate,
@@ -401,3 +402,24 @@ def list_audit_events(
         items=[AuditEventResponse.model_validate(event) for event in events],
         page=PageInfo(limit=limit, offset=offset, returned=len(events)),
     )
+
+
+@router.post("/client-events", status_code=status.HTTP_202_ACCEPTED)
+def accept_client_event(
+    payload: ClientEventCreate,
+    principal: Annotated[Principal, Depends(require_permission(Permission.VIEW))],
+    session: Annotated[Session, Depends(get_session)],
+) -> dict[str, bool]:
+    """Accept bounded operational metadata queued by disconnected desktops."""
+
+    record_audit_event(
+        session,
+        team_id=principal.team.id,
+        actor_user_id=principal.user.id,
+        action=f"client.{payload.event_type}",
+        resource_type="desktop_event",
+        resource_id=None,
+        event_data=payload.payload,
+    )
+    session.commit()
+    return {"accepted": True}
