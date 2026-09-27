@@ -38,4 +38,3 @@ API documentation is at `http://127.0.0.1:8787/api/docs`; liveness is at `/api/v
 `npm run build` is the authoritative local gate. It stops at the first failure and runs formatting/lint, strict typing, tests/coverage, Bandit, dependency audit, secret scanning, wheel/sdist creation, and artifact validation.
 
 Docker is currently a missing prerequisite on the initial Windows workstation. Use CI or a Docker-enabled host to validate `docker compose config`, service health, and shutdown until it is installed.
-

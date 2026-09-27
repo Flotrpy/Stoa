@@ -11,4 +11,3 @@ Before opening a pull request:
 5. Complete every applicable section of the pull-request template, including rollback and security impact.
 
 Tests must use loopback, private lab networks, and checked-in deterministic fixtures. Public systems are never test targets without explicit, documented authorization.
-

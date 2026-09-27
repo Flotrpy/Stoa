@@ -138,4 +138,3 @@ if (!requested || !commands[requested]) {
   fail(`unknown task ${JSON.stringify(requested)}`);
 }
 commands[requested]();
-

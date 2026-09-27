@@ -29,4 +29,3 @@ Raw captures, packet payloads, password material, filesystem evidence, sensitive
 Status: accepted · 2026-09-27
 
 Stoá uses a restrained operations-console aesthetic with dense, readable surfaces, minimal decoration, and exactly two user-selectable themes. Feature UI research will occur after backend contracts are stable so visual work reflects real workflows rather than decorative mockups.
-

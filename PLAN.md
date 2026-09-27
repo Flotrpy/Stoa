@@ -65,4 +65,3 @@ The specification is delivered through exactly ten independently reviewable pull
 - No security module is falsely represented as implemented.
 - The authoritative specification and requirement-to-PR map are version controlled.
 - GitHub repository ownership, branch prefix, local identity, and PR evidence conform to the specification.
-
