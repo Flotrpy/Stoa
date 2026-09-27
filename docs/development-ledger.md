@@ -36,4 +36,4 @@ This ledger records meaningful commits only. Hashes and PR numbers are filled af
 | 30 | `11d717e` | feat(sync): add bounded offline metadata synchronization | 3 | Allowlisted metadata retry and central audit acceptance | API and unit tests | Pass | Retention limits in PR 10 |
 | 31 | `64277b4` | feat(desktop): add onboarding enrollment and settings workflows | 3 | First-run connection, endpoint enrollment, connectivity UI, settings, themes | Offscreen smoke, strict mypy | Pass | Module screens in PRs 4–10 |
 | 32 | `f0c0ae8` | test(desktop): cover storage transport enrollment and sync | 3 | Desktop persistence, API, realtime, enrollment, sync boundaries | 41 tests, 81.62% coverage | Pass | Hosted Windows/Linux matrix |
-| 33 | `fb2c0f1` | feat(desktop): flush safe metadata after reconnect | 3 | Ordered replay after restored connectivity | Full local build | Pass | Hosted Windows/Linux matrix |
+| 33 | `fb2c0f1` | feat(desktop): flush safe metadata after reconnect | 3 | Ordered replay after restored connectivity | Local and hosted Windows/Linux build | Pass | PR review |
