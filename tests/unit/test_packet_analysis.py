@@ -71,7 +71,11 @@ def test_search_filter_and_traffic_summary() -> None:
 def test_local_pcap_round_trip_rotation_and_explicit_export(tmp_path: Path) -> None:
     managed = tmp_path / "managed"
     store = RotatingPcapStore(managed, maximum_file_bytes=1000, retained_files=2)
-    packet = Ether() / IP(src="127.0.0.1", dst="127.0.0.1") / TCP(sport=50000, dport=80)
+    packet = (
+        Ether(src="02:00:00:00:00:01", dst="02:00:00:00:00:02")
+        / IP(src="127.0.0.1", dst="127.0.0.1")
+        / TCP(sport=50000, dport=80)
+    )
     source = store.write(packet)
     store.close()
 
