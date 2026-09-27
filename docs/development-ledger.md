@@ -55,4 +55,4 @@ This ledger records meaningful commits only. Hashes and PR numbers are filled af
 | 49 | `6e1f205` | feat(firewall): add explainable simulation engine | 7 | Ordered rules, first match, validation, shadow/conflict analysis, generated packets, replay, import/export | Firewall unit tests, Ruff, strict mypy | Pass | API integration |
 | 50 | `b54333b` | feat(api): persist firewall simulation decisions | 7 | Policy caps, migration, endpoint-bound decisions, JSON/text reports | API and migration tests | Pass | Desktop workflow |
 | 51 | `168bfa8` | feat(desktop): add firewall simulator workflow | 7 | Scope selection, policy JSON editor, decision table, report export | Desktop smoke, strict mypy | Pass | Full build |
-| 52 | `pending` | docs: document firewall simulation boundaries | 7 | Simulation-only safety boundary, status, residual risks | `npm run build`; 61 tests, 76.13% coverage | Pass | Hosted matrix |
+| 52 | `e4ebd1e` | docs: document firewall simulation boundaries | 7 | Simulation-only safety boundary, status, residual risks | `npm run build`; 61 tests, 76.13% coverage | Pass | Hosted matrix |
