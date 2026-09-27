@@ -59,3 +59,9 @@ The desktop stores access tokens through the operating-system credential vault a
 Status: accepted · 2026-09-27
 
 The port scanner defaults to ordinary TCP connections from the endpoint's real address. SYN scanning is isolated in a privileged Scapy adapter and requires both central `allow_syn` policy and an explicit local privilege confirmation. The adapter sends a reset after an open response and exposes no source spoofing, timing evasion, fragmentation, decoys, or stealth controls. Hostnames resolve once to one pinned IPv4 address for a scan.
+
+## ADR-011 — PCAP remains local; central IDS data is metadata-only
+
+Status: accepted · 2026-09-27
+
+Live and replayed packet bytes are processed on the endpoint and retained only in a rotating per-user PCAP store. Central results contain bounded counts and explainable indicators, never raw frames or payloads. Live capture is constrained to addresses inside the reviewed network scope before a packet is written locally. PCAP export is an explicit file action.
