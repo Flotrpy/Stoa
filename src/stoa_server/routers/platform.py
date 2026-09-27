@@ -1,5 +1,7 @@
 """Team-scoped endpoint, authorization, policy, and audit routes."""
 
+import hashlib
+import json
 from datetime import UTC, datetime
 from typing import Annotated
 from uuid import UUID
@@ -13,16 +15,19 @@ from stoa_server.audit import record_audit_event
 from stoa_server.database import get_session
 from stoa_server.job_authorization import JobAuthorizationError, authorize_job
 from stoa_server.models import (
+    Alert,
     AuditEvent,
     AuthorizationScope,
     Endpoint,
     EndpointState,
+    Finding,
     Job,
     JobState,
     ModulePolicy,
     PortScanObservation,
     Role,
     RoleName,
+    Severity,
     TeamMembership,
     User,
 )
@@ -30,6 +35,7 @@ from stoa_server.rbac import Permission, Principal, require_permission
 from stoa_server.routers.auth import ensure_roles
 from stoa_server.security import hash_password
 from stoa_shared.domain import (
+    AlertResponse,
     AuditEventPage,
     AuditEventResponse,
     AuthorizationScopeCreate,
@@ -43,6 +49,9 @@ from stoa_shared.domain import (
     MembershipResponse,
     ModulePolicyResponse,
     ModulePolicyUpsert,
+    PacketAnalysisPolicyConfiguration,
+    PacketAnalysisResultCreate,
+    PacketCaptureJobConfiguration,
     PageInfo,
     PortScanJobConfiguration,
     PortScanObservationResponse,
@@ -299,6 +308,8 @@ def upsert_policy(
     configuration = payload.configuration
     if module_id == "port-scanner":
         configuration = PortScanPolicyConfiguration.model_validate(configuration).model_dump()
+    if module_id == "packet-analysis":
+        configuration = PacketAnalysisPolicyConfiguration.model_validate(configuration).model_dump()
     policy = session.scalar(
         select(ModulePolicy).where(
             ModulePolicy.team_id == principal.team.id, ModulePolicy.module_id == module_id
@@ -383,6 +394,20 @@ def create_job(
             authorized.scope.rate_policy["window_seconds"]
             / authorized.scope.rate_policy["max_requests"]
         )
+    if payload.module_id == "packet-analysis":
+        capture = PacketCaptureJobConfiguration.model_validate(configuration)
+        packet_policy = PacketAnalysisPolicyConfiguration.model_validate(
+            authorized.policy.configuration
+        )
+        if not capture.replay_only and not packet_policy.allow_live_capture:
+            raise HTTPException(status_code=403, detail="live capture is disabled by policy")
+        if capture.packet_limit > packet_policy.maximum_packets:
+            raise HTTPException(status_code=403, detail="packet limit exceeds module policy")
+        configuration = capture.model_dump()
+        configuration["maximum_file_bytes"] = min(
+            capture.maximum_file_bytes, packet_policy.maximum_file_bytes
+        )
+        configuration["retained_files"] = min(capture.retained_files, packet_policy.retained_files)
 
     job = Job(
         team_id=principal.team.id,
@@ -521,6 +546,105 @@ def get_port_scan_report(
             f"{item.port:<8} {item.state:<12} {(item.service or '-'):<19} {item.banner or '-'}"
         )
     return Response(content="\n".join(lines) + "\n", media_type="text/plain")
+
+
+@router.post("/jobs/{job_id}/packet-analysis-results", status_code=status.HTTP_201_CREATED)
+def create_packet_analysis_results(
+    job_id: UUID,
+    payload: PacketAnalysisResultCreate,
+    principal: Annotated[Principal, Depends(require_permission(Permission.RUN_JOBS))],
+    session: Annotated[Session, Depends(get_session)],
+) -> dict[str, int | str]:
+    job = session.scalar(
+        select(Job).where(
+            Job.id == job_id,
+            Job.team_id == principal.team.id,
+            Job.module_id == "packet-analysis",
+        )
+    )
+    if job is None:
+        raise HTTPException(status_code=404, detail="packet analysis job not found")
+    if payload.executing_endpoint_id != job.executing_endpoint_id:
+        raise HTTPException(status_code=403, detail="endpoint mismatch")
+    if job.state not in {JobState.QUEUED, JobState.RUNNING, JobState.CANCELLING}:
+        raise HTTPException(status_code=409, detail="job is already final")
+
+    alerts_created = 0
+    for indicator in payload.indicators:
+        evidence = json.dumps(indicator.evidence, sort_keys=True, separators=(",", ":"))
+        finding = Finding(
+            team_id=principal.team.id,
+            job_id=job.id,
+            title=indicator.title,
+            summary=f"{indicator.explanation} Evidence: {evidence}",
+            severity=Severity(indicator.severity),
+            confidence=indicator.confidence,
+            remediation=(
+                "Review the affected systems and corroborate with endpoint and network logs."
+            ),
+        )
+        session.add(finding)
+        session.flush()
+        deduplication_key = hashlib.sha256(
+            f"{indicator.rule_id}|{indicator.source}|{indicator.destination}".encode()
+        ).hexdigest()
+        existing = session.scalar(
+            select(Alert).where(
+                Alert.team_id == principal.team.id,
+                Alert.deduplication_key == deduplication_key,
+            )
+        )
+        if existing is None:
+            session.add(
+                Alert(
+                    team_id=principal.team.id,
+                    finding_id=finding.id,
+                    title=indicator.title,
+                    severity=Severity(indicator.severity),
+                    confidence=indicator.confidence,
+                    deduplication_key=deduplication_key,
+                )
+            )
+            alerts_created += 1
+    job.state = JobState.CANCELLED if payload.cancelled else JobState.SUCCEEDED
+    record_audit_event(
+        session,
+        team_id=principal.team.id,
+        actor_user_id=principal.user.id,
+        action="packet_analysis.results_recorded",
+        resource_type="job",
+        resource_id=str(job.id),
+        correlation_id=job.correlation_id,
+        event_data={
+            "packet_count": payload.packet_count,
+            "byte_count": payload.byte_count,
+            "protocols": payload.protocols,
+            "indicator_count": len(payload.indicators),
+            "cancelled": payload.cancelled,
+        },
+    )
+    session.commit()
+    return {
+        "job_id": str(job.id),
+        "state": job.state.value,
+        "alerts_created": alerts_created,
+    }
+
+
+@router.get("/alerts", response_model=list[AlertResponse])
+def list_alerts(
+    principal: Annotated[Principal, Depends(require_permission(Permission.VIEW))],
+    session: Annotated[Session, Depends(get_session)],
+    limit: Annotated[int, Query(ge=1, le=200)] = 50,
+) -> list[Alert]:
+    return list(
+        session.scalars(
+            select(Alert)
+            .where(Alert.team_id == principal.team.id)
+            .order_by(Alert.created_at.desc())
+            .limit(limit)
+        )
+    )
 
 
 @router.get("/audit-events", response_model=AuditEventPage)
