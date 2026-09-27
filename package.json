@@ -1,0 +1,26 @@
+{
+  "name": "stoa",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Unified team security platform",
+  "engines": {
+    "node": ">=24.0.0 <25",
+    "npm": ">=11.0.0 <12"
+  },
+  "scripts": {
+    "setup": "node scripts/task.mjs setup",
+    "dev": "node scripts/task.mjs dev",
+    "dev:server": "node scripts/task.mjs dev-server",
+    "dev:desktop": "node scripts/task.mjs dev-desktop",
+    "build": "node scripts/task.mjs build",
+    "install-app": "node scripts/task.mjs install-app",
+    "start": "node scripts/task.mjs start",
+    "test": "node scripts/task.mjs test",
+    "lint": "node scripts/task.mjs lint",
+    "typecheck": "node scripts/task.mjs typecheck",
+    "security": "node scripts/task.mjs security",
+    "server:up": "node scripts/task.mjs server-up",
+    "server:down": "node scripts/task.mjs server-down"
+  }
+}
+
