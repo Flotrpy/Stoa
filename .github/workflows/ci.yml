@@ -31,6 +31,11 @@ jobs:
           python-version-file: .python-version
           cache: pip
           cache-dependency-path: requirements/*.txt
+      - name: Install Linux desktop runtime libraries
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libegl1
       - name: Install npm metadata
         run: npm ci
       - name: Bootstrap Python environment
