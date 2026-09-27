@@ -3,7 +3,9 @@ from datetime import UTC, datetime, timedelta
 from fastapi.testclient import TestClient
 
 
-def prepare_authorized_job(client: TestClient, headers: dict[str, str]) -> tuple[str, str]:
+def prepare_authorized_job(
+    client: TestClient, headers: dict[str, str], module_id: str = "port-scanner"
+) -> tuple[str, str]:
     endpoint = client.post(
         "/api/v1/endpoints",
         headers=headers,
@@ -17,14 +19,14 @@ def prepare_authorized_job(client: TestClient, headers: dict[str, str]) -> tuple
         json={
             "name": "Loopback only",
             "target_pattern": "127.0.0.0/8",
-            "allowed_modules": ["port-scanner"],
+            "allowed_modules": [module_id],
             "rate_policy": {"max_requests": 100, "window_seconds": 60},
             "valid_from": (now - timedelta(minutes=1)).isoformat(),
             "expires_at": (now + timedelta(hours=1)).isoformat(),
         },
     ).json()
     client.put(
-        "/api/v1/module-policies/port-scanner",
+        f"/api/v1/module-policies/{module_id}",
         headers=headers,
         json={"enabled": True, "configuration": {}},
     )
@@ -202,3 +204,58 @@ def test_port_scan_policy_controls_privileged_method_and_concurrency(
     assert accepted.status_code == 201
     assert accepted.json()["configuration"]["collect_banners"] is False
     assert accepted.json()["configuration"]["effective_minimum_interval_seconds"] == 0.6
+
+
+def test_packet_analysis_results_create_deduplicated_metadata_alerts(
+    client: TestClient, admin_headers: dict[str, str]
+) -> None:
+    endpoint_id, scope_id = prepare_authorized_job(
+        client, admin_headers, module_id="packet-analysis"
+    )
+    job = client.post(
+        "/api/v1/jobs",
+        headers=admin_headers,
+        json={
+            "module_id": "packet-analysis",
+            "executing_endpoint_id": endpoint_id,
+            "authorization_scope_id": scope_id,
+            "target": "127.0.0.1",
+            "business_justification": "Inspect authorized local lab packet metadata",
+            "configuration": {
+                "interface": "loopback-fixture",
+                "protocols": ["tcp", "dns"],
+                "packet_limit": 100,
+                "replay_only": True,
+            },
+        },
+    )
+    assert job.status_code == 201
+    result = client.post(
+        f"/api/v1/jobs/{job.json()['id']}/packet-analysis-results",
+        headers=admin_headers,
+        json={
+            "executing_endpoint_id": endpoint_id,
+            "packet_count": 12,
+            "byte_count": 840,
+            "protocols": {"tcp": 10, "dns": 2},
+            "indicators": [
+                {
+                    "rule_id": "STOA-NET-001",
+                    "title": "Rapid connection attempts across multiple ports",
+                    "severity": "medium",
+                    "confidence": 0.85,
+                    "explanation": "Administrative discovery can produce the same pattern.",
+                    "source": "192.0.2.10",
+                    "destination": "192.0.2.20",
+                    "evidence": {"unique_ports": 20, "window_seconds": 10},
+                }
+            ],
+        },
+    )
+    alerts = client.get("/api/v1/alerts", headers=admin_headers)
+
+    assert result.status_code == 201
+    assert result.json()["alerts_created"] == 1
+    assert alerts.status_code == 200
+    assert alerts.json()[0]["severity"] == "medium"
+    assert "payload" not in str(alerts.json()).casefold()
