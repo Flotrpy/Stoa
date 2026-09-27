@@ -25,6 +25,8 @@ from stoa_desktop.api_client import Connectivity
 from stoa_desktop.background import BackgroundTask, TaskRunner
 from stoa_desktop.enrollment import EnrollmentService
 from stoa_desktop.onboarding import OnboardingDialog
+from stoa_desktop.port_scanner import PortScanService
+from stoa_desktop.port_scanner_view import PortScannerView
 from stoa_desktop.session import DesktopSession
 from stoa_desktop.theme import Theme, stylesheet
 
@@ -69,8 +71,10 @@ class MainWindow(QMainWindow):
         self.pages = QStackedWidget()
         self.dashboard = self._build_dashboard()
         self.settings_page = self._build_settings()
+        self.modules_page = PortScannerView(PortScanService(self.session))
         self.pages.addWidget(self.dashboard)
         self.pages.addWidget(self.settings_page)
+        self.pages.addWidget(self.modules_page)
         layout.addWidget(self.pages, 1)
         return shell
 
@@ -91,7 +95,7 @@ class MainWindow(QMainWindow):
             button.setObjectName("nav")
             button.setProperty("active", label == "Dashboard")
             button.setCursor(Qt.CursorShape.PointingHandCursor)
-            button.setEnabled(label in {"Dashboard", "Settings"})
+            button.setEnabled(label in {"Dashboard", "Modules", "Settings"})
             if not button.isEnabled():
                 button.setToolTip(f"{label} arrives in its scheduled delivery phase")
             button.clicked.connect(lambda checked=False, name=label: self._navigate(name))
@@ -200,7 +204,12 @@ class MainWindow(QMainWindow):
         return card, value_label
 
     def _navigate(self, name: str) -> None:
-        self.pages.setCurrentWidget(self.settings_page if name == "Settings" else self.dashboard)
+        destination = {
+            "Dashboard": self.dashboard,
+            "Modules": self.modules_page,
+            "Settings": self.settings_page,
+        }[name]
+        self.pages.setCurrentWidget(destination)
         for label, button in self._nav_buttons.items():
             button.setProperty("active", label == name)
             button.style().unpolish(button)

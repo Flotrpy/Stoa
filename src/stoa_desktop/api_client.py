@@ -56,6 +56,14 @@ class ApiClient:
     def post(self, path: str, payload: dict[str, Any]) -> Any:
         return self.request("POST", path, json=payload)
 
+    def get_text(self, path: str) -> str:
+        try:
+            response = self._request("GET", path)
+            response.raise_for_status()
+            return response.text
+        except httpx.HTTPError as error:
+            raise ApiClientError("server request failed") from error
+
     def request(self, method: str, path: str, **kwargs: Any) -> Any:
         try:
             response = self._request(method, path, **kwargs)
