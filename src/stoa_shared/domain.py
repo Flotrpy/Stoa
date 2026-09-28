@@ -538,6 +538,7 @@ class ClientEventCreate(ApiModel):
 
 
 class ChatDeviceCreate(ApiModel):
+    device_id: UUID | None = None
     name: str = Field(min_length=1, max_length=160)
     identity_public_key: str = Field(min_length=40, max_length=2000)
 

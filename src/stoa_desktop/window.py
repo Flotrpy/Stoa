@@ -23,6 +23,8 @@ from PySide6.QtWidgets import (
 
 from stoa_desktop.api_client import Connectivity
 from stoa_desktop.background import BackgroundTask, TaskRunner
+from stoa_desktop.chat import ChatService
+from stoa_desktop.chat_view import ChatView
 from stoa_desktop.endpoint_monitoring import EndpointMonitoringService
 from stoa_desktop.endpoint_monitoring_view import EndpointMonitoringView
 from stoa_desktop.enrollment import EnrollmentService
@@ -94,6 +96,7 @@ class MainWindow(QMainWindow):
             EndpointMonitoringService(self.session)
         )
         self.risk_analysis_page = RiskAnalysisView(RiskAnalysisService())
+        self.chat_page = ChatView(ChatService(self.session))
         self.pages.addWidget(self.dashboard)
         self.pages.addWidget(self.settings_page)
         self.pages.addWidget(self.modules_page)
@@ -102,6 +105,7 @@ class MainWindow(QMainWindow):
         self.pages.addWidget(self.firewall_page)
         self.pages.addWidget(self.endpoint_monitoring_page)
         self.pages.addWidget(self.risk_analysis_page)
+        self.pages.addWidget(self.chat_page)
         layout.addWidget(self.pages, 1)
         return shell
 
@@ -124,7 +128,7 @@ class MainWindow(QMainWindow):
             button.setCursor(Qt.CursorShape.PointingHandCursor)
             button.setEnabled(
                 label in {"Dashboard", "Port Scanner", "Web Scanner", "Packet Analysis", "Settings"}
-                or label in {"Firewall Simulator", "Endpoint Monitoring", "Risk Analysis"}
+                or label in {"Firewall Simulator", "Endpoint Monitoring", "Risk Analysis", "Chat"}
             )
             if not button.isEnabled():
                 button.setToolTip(f"{label} arrives in its scheduled delivery phase")
@@ -242,6 +246,7 @@ class MainWindow(QMainWindow):
             "Firewall Simulator": self.firewall_page,
             "Endpoint Monitoring": self.endpoint_monitoring_page,
             "Risk Analysis": self.risk_analysis_page,
+            "Chat": self.chat_page,
             "Settings": self.settings_page,
         }[name]
         self.pages.setCurrentWidget(destination)

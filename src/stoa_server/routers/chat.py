@@ -33,6 +33,7 @@ def register_device(
         user_id=principal.user.id,
         name=payload.name.strip(),
         identity_public_key=payload.identity_public_key,
+        **({"id": payload.device_id} if payload.device_id is not None else {}),
     )
     session.add(device)
     session.flush()
