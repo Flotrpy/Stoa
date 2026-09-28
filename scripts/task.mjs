@@ -105,6 +105,13 @@ function build() {
   runPython(["scripts/validate_artifacts.py"]);
 }
 
+function release() {
+  build();
+  runPython(["scripts/build_portable.py"]);
+  runPython(["scripts/release.py", "sbom", path.join(root, "release", "stoa.spdx.json")]);
+  runPython(["scripts/release.py", "checksums", path.join(root, "release")]);
+}
+
 function dockerCompose(action) {
   const probe = spawnSync("docker", ["--version"], { stdio: "ignore", shell: false });
   if (probe.status !== 0) {
@@ -119,6 +126,7 @@ const commands = {
   "dev-server": devServer,
   "dev-desktop": devDesktop,
   build,
+  release,
   "install-app": () => {
     runPython(["-m", "build"]);
     const wheel = path.join(root, "dist", "stoa_platform-0.1.0-py3-none-any.whl");

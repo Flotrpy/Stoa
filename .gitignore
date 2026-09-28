@@ -9,6 +9,7 @@ __pycache__/
 coverage.xml
 htmlcov/
 dist/
+release/
 build/
 *.spec
 .env
