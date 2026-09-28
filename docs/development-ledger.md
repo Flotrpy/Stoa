@@ -62,4 +62,4 @@ This ledger records meaningful commits only. Hashes and PR numbers are filled af
 | 56 | `ccde97a` | docs: document endpoint monitoring boundaries | 8 | Local-data boundary, non-invasive indicators, status, residual risks | `npm run build`; 66 tests, 76.57% coverage; hosted Windows/Linux/Compose/PostgreSQL | Pass | PR review |
 | 57 | `c860bea` | feat(risk): add phishing and offline password engines | 9 | Versioned ML pipeline, heuristic explanations, bounded local audit, cancellation and limits | Risk-analysis unit tests, Ruff, strict mypy | Pass | Desktop workflow |
 | 58 | `8a7fa5f` | feat(desktop): add local risk-analysis workspace | 9 | Phishing facts, model explanations, local-only password lab | Desktop smoke, strict mypy | Pass | Full build |
-| 59 | pending | docs: document risk-analysis boundaries | 9 | Model card, data provenance, local-data boundary, limitations | `npm run build`; 72 tests, 77.24% coverage | Pass | Hosted matrix |
+| 59 | `35eb362` | docs: document risk-analysis boundaries | 9 | Model card, data provenance, local-data boundary, limitations | `npm run build`; 72 tests, 77.24% coverage | Pass | Hosted matrix |
