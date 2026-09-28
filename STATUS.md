@@ -18,7 +18,7 @@ PR 6 — Web security scanner: open, green, and awaiting review.
 
 PR 7 — Firewall simulator: open, green, and awaiting review.
 
-PR 8 — Endpoint monitoring: implementation complete locally on a stacked branch and undergoing final verification.
+PR 8 — Endpoint monitoring: open, green, and awaiting review.
 
 ## Repository inspection
 
@@ -67,6 +67,7 @@ PR 8 implements local SHA-256 baselines, include/exclude and recursion controls,
 - PR 7 hosted workflow: passed Windows, Ubuntu, Compose validation, and PostgreSQL migration lifecycle checks.
 - PR 8 focused tests: passed endpoint-monitoring unit tests, API job/report tests, desktop smoke, and migration cycle.
 - PR 8 `npm run build`: passed formatting, Ruff, strict mypy, 66 tests at 76.57% coverage, Bandit, dependency audit, secret scan, source/wheel builds, and packaging validation.
+- PR 8 hosted workflow: passed Windows, Ubuntu, Compose validation, and PostgreSQL migration lifecycle checks.
 - Docker Compose model validation: passed in hosted CI. Local runtime validation remains unavailable because Docker is not installed on the current workstation.
 - Windows verification: passed locally and in hosted CI. Linux verification: passed in hosted CI after declaring the required `libegl1` desktop runtime package.
 
