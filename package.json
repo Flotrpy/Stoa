@@ -13,6 +13,7 @@
     "dev:server": "node scripts/task.mjs dev-server",
     "dev:desktop": "node scripts/task.mjs dev-desktop",
     "build": "node scripts/task.mjs build",
+    "release": "node scripts/task.mjs release",
     "install-app": "node scripts/task.mjs install-app",
     "start": "node scripts/task.mjs start",
     "test": "node scripts/task.mjs test",
