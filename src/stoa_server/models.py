@@ -217,6 +217,23 @@ class FirewallSimulationObservation(IdentityMixin, TimestampMixin, Base):
     explanation: Mapped[str] = mapped_column(Text)
 
 
+class EndpointMonitoringObservation(IdentityMixin, TimestampMixin, Base):
+    __tablename__ = "endpoint_monitoring_observations"
+
+    team_id: Mapped[UUID] = mapped_column(ForeignKey("teams.id", ondelete="CASCADE"))
+    job_id: Mapped[UUID] = mapped_column(ForeignKey("jobs.id", ondelete="CASCADE"))
+    baseline_id: Mapped[str] = mapped_column(String(128))
+    observation_type: Mapped[str] = mapped_column(String(32))
+    rule_id: Mapped[str] = mapped_column(String(64))
+    title: Mapped[str] = mapped_column(String(240))
+    severity: Mapped[str] = mapped_column(String(24))
+    confidence: Mapped[float] = mapped_column(Float)
+    subject: Mapped[str] = mapped_column(String(1024))
+    explanation: Mapped[str] = mapped_column(Text)
+    evidence: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
+    chain_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
+
 class Finding(IdentityMixin, TimestampMixin, Base):
     __tablename__ = "findings"
 
