@@ -166,7 +166,11 @@ def detect_keylogger_indicators(
     persistence_terms = (
         ("\\run\\", "\\startup\\", "appdata")
         if platform == "windows"
-        else ("/tmp/", "/dev/shm/", ".config/autostart")  # noqa: S108 - risk indicators
+        else (
+            "/tmp/",  # noqa: S108  # nosec B108 - metadata indicator
+            "/dev/shm/",  # noqa: S108  # nosec B108 - metadata indicator
+            ".config/autostart",
+        )
     )
     for process in processes:
         searchable = " ".join(
