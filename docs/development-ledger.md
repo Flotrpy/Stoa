@@ -56,3 +56,7 @@ This ledger records meaningful commits only. Hashes and PR numbers are filled af
 | 50 | `b54333b` | feat(api): persist firewall simulation decisions | 7 | Policy caps, migration, endpoint-bound decisions, JSON/text reports | API and migration tests | Pass | Desktop workflow |
 | 51 | `168bfa8` | feat(desktop): add firewall simulator workflow | 7 | Scope selection, policy JSON editor, decision table, report export | Desktop smoke, strict mypy | Pass | Full build |
 | 52 | `e4ebd1e` | docs: document firewall simulation boundaries | 7 | Simulation-only safety boundary, status, residual risks | `npm run build`; 61 tests, 76.13% coverage; hosted Windows/Linux/Compose/PostgreSQL | Pass | PR review |
+| 53 | `023dbe9` | feat(endpoint): add tamper-evident monitoring engine | 8 | SHA-256 baselines, lifecycle/rename detection, event chains, Windows/Linux metadata indicators | Endpoint unit tests, Ruff, strict mypy | Pass | API integration |
+| 54 | `035023c` | feat(api): persist endpoint monitoring alerts | 8 | Policy enforcement, migration, endpoint-bound observations, findings, alerts, reports | API and migration tests | Pass | Desktop workflow |
+| 55 | `e63ef33` | feat(desktop): add endpoint monitoring workflow | 8 | Directory and scope selection, baseline approval/renewal, change table | Desktop smoke, strict mypy | Pass | Full build |
+| 56 | pending | docs: document endpoint monitoring boundaries | 8 | Local-data boundary, non-invasive indicators, status, residual risks | `npm run build`; 66 tests, 76.57% coverage | Pass | Hosted matrix |
