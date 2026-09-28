@@ -18,6 +18,8 @@ PR 6 — Web security scanner: open, green, and awaiting review.
 
 PR 7 — Firewall simulator: open, green, and awaiting review.
 
+PR 8 — Endpoint monitoring: implementation complete locally on a stacked branch and undergoing final verification.
+
 ## Repository inspection
 
 - Starting state: empty Git repository on `master`, no commits, no configured remote.
@@ -42,6 +44,8 @@ PR 6 implements same-origin crawling, URL/link/form/input/cookie/header/paramete
 
 PR 7 implements ordered allow/block simulation, TCP/UDP/ICMP/any matching, source/destination CIDR and port ranges, first-match decisions, default policy, validation, shadow/conflict analysis, generated packets, packet-metadata replay, import/export, central reports, and a desktop workflow. It never mutates host firewall configuration.
 
+PR 8 implements local SHA-256 baselines, include/exclude and recursion controls, large-file handling, file lifecycle and rename detection, tamper-evident event chains, baseline renewal, bounded central observations, deduplicated alerts, reports, and non-invasive Windows/Linux process-metadata indicators. It never captures keystrokes or file contents.
+
 ## Verification evidence
 
 - `npm install`: passed; npm dependency audit reported zero findings.
@@ -61,6 +65,8 @@ PR 7 implements ordered allow/block simulation, TCP/UDP/ICMP/any matching, sourc
 - PR 7 focused tests: passed firewall simulator unit tests, API job/report tests, desktop smoke, and migration cycle; subset coverage gate is expected to fail when only focused tests run.
 - PR 7 `npm run build`: passed formatting, Ruff, strict mypy, 61 tests at 76.13% coverage, Bandit, dependency audit, secret scan, source/wheel builds, and packaging validation.
 - PR 7 hosted workflow: passed Windows, Ubuntu, Compose validation, and PostgreSQL migration lifecycle checks.
+- PR 8 focused tests: passed endpoint-monitoring unit tests, API job/report tests, desktop smoke, and migration cycle.
+- PR 8 `npm run build`: passed formatting, Ruff, strict mypy, 66 tests at 76.57% coverage, Bandit, dependency audit, secret scan, source/wheel builds, and packaging validation.
 - Docker Compose model validation: passed in hosted CI. Local runtime validation remains unavailable because Docker is not installed on the current workstation.
 - Windows verification: passed locally and in hosted CI. Linux verification: passed in hosted CI after declaring the required `libegl1` desktop runtime package.
 
