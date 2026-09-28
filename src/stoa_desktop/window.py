@@ -33,6 +33,8 @@ from stoa_desktop.packet_analysis import PacketAnalysisService
 from stoa_desktop.packet_analysis_view import PacketAnalysisView
 from stoa_desktop.port_scanner import PortScanService
 from stoa_desktop.port_scanner_view import PortScannerView
+from stoa_desktop.risk_analysis import RiskAnalysisService
+from stoa_desktop.risk_analysis_view import RiskAnalysisView
 from stoa_desktop.session import DesktopSession
 from stoa_desktop.theme import Theme, stylesheet
 from stoa_desktop.web_scanner import WebScanService
@@ -53,6 +55,7 @@ class MainWindow(QMainWindow):
         "Packet Analysis",
         "Firewall Simulator",
         "Endpoint Monitoring",
+        "Risk Analysis",
         "Chat",
         "Reports",
         "Policies",
@@ -90,6 +93,7 @@ class MainWindow(QMainWindow):
         self.endpoint_monitoring_page = EndpointMonitoringView(
             EndpointMonitoringService(self.session)
         )
+        self.risk_analysis_page = RiskAnalysisView(RiskAnalysisService())
         self.pages.addWidget(self.dashboard)
         self.pages.addWidget(self.settings_page)
         self.pages.addWidget(self.modules_page)
@@ -97,6 +101,7 @@ class MainWindow(QMainWindow):
         self.pages.addWidget(self.packet_page)
         self.pages.addWidget(self.firewall_page)
         self.pages.addWidget(self.endpoint_monitoring_page)
+        self.pages.addWidget(self.risk_analysis_page)
         layout.addWidget(self.pages, 1)
         return shell
 
@@ -119,7 +124,7 @@ class MainWindow(QMainWindow):
             button.setCursor(Qt.CursorShape.PointingHandCursor)
             button.setEnabled(
                 label in {"Dashboard", "Port Scanner", "Web Scanner", "Packet Analysis", "Settings"}
-                or label in {"Firewall Simulator", "Endpoint Monitoring"}
+                or label in {"Firewall Simulator", "Endpoint Monitoring", "Risk Analysis"}
             )
             if not button.isEnabled():
                 button.setToolTip(f"{label} arrives in its scheduled delivery phase")
@@ -236,6 +241,7 @@ class MainWindow(QMainWindow):
             "Packet Analysis": self.packet_page,
             "Firewall Simulator": self.firewall_page,
             "Endpoint Monitoring": self.endpoint_monitoring_page,
+            "Risk Analysis": self.risk_analysis_page,
             "Settings": self.settings_page,
         }[name]
         self.pages.setCurrentWidget(destination)

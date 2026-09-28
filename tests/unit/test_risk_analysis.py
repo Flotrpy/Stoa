@@ -2,6 +2,7 @@ import hashlib
 
 import pytest
 
+from stoa_desktop.risk_analysis import RiskAnalysisService
 from stoa_security.password_audit import (
     audit_hash,
     brute_force_candidates,
@@ -57,3 +58,11 @@ def test_rejects_unsupported_hashes_and_unsafe_demo_size() -> None:
         detect_hash_format("not-a-supported-hash")
     with pytest.raises(ValueError, match="between 1 and 6"):
         tuple(brute_force_candidates("ab", 7))
+
+
+def test_desktop_service_returns_only_local_summary() -> None:
+    service = RiskAnalysisService()
+    digest = hashlib.sha256(b"local1").hexdigest()
+    result = service.audit_password_hash(digest, ["local"], max_attempts=10, max_seconds=1)
+    assert result["matched"] is True
+    assert result["candidate"] == "local1"
