@@ -78,7 +78,7 @@ PR 10 implements device-controlled authenticated chat encryption, ciphertext-onl
 - PR 8 hosted workflow: passed Windows, Ubuntu, Compose validation, and PostgreSQL migration lifecycle checks.
 - PR 9 `npm run build`: passed formatting, Ruff, strict mypy, 72 tests at 77.24% coverage, Bandit, dependency audit, secret scan, source/wheel builds, and packaging validation.
 - PR 9 hosted workflow: passed Windows, Ubuntu, Compose validation, and PostgreSQL migration lifecycle checks.
-- PR 10 `npm run build`: passed formatting, Ruff, strict mypy, 79 tests at 77.89% coverage, Bandit, dependency audit, secret scan, source/wheel builds, and packaging validation.
+- PR 10 `npm run build`: passed formatting, Ruff, strict mypy, 79 tests at 77.12% coverage, Bandit, dependency audit, secret scan, source/wheel builds, and packaging validation.
 - PR 10 Windows portable build: produced and smoke-launched `Stoa.exe`; SPDX SBOM and SHA-256 checksum generation passed.
 - Docker Compose model validation: passed in hosted CI. Local runtime validation remains unavailable because Docker is not installed on the current workstation.
 - Windows verification: passed locally and in hosted CI. Linux verification: passed in hosted CI after declaring the required `libegl1` desktop runtime package.
