@@ -92,6 +92,17 @@ class DeviceKeys:
         }
         return json.dumps(payload, separators=(",", ":")).encode()
 
+    @classmethod
+    def import_encrypted(cls, payload: bytes, password: bytes) -> DeviceKeys:
+        data = json.loads(payload)
+        agreement = serialization.load_pem_private_key(_unb64(data["agreement"]), password)
+        signing = serialization.load_pem_private_key(_unb64(data["signing"]), password)
+        if not isinstance(agreement, x25519.X25519PrivateKey) or not isinstance(
+            signing, ed25519.Ed25519PrivateKey
+        ):
+            raise ValueError("encrypted device bundle contains unexpected key types")
+        return cls(UUID(data["device_id"]), agreement, signing)
+
 
 class ReplayProtector:
     def __init__(self) -> None:

@@ -43,3 +43,5 @@ def test_private_key_export_requires_password_and_is_encrypted() -> None:
     exported = keys.export_encrypted(b"correct horse battery staple")
     assert b"agreement" in exported
     assert keys.public_bundle().agreement_key.encode() not in exported
+    restored = DeviceKeys.import_encrypted(exported, b"correct horse battery staple")
+    assert restored.public_bundle() == keys.public_bundle()
