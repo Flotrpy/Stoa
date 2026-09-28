@@ -537,6 +537,36 @@ class ClientEventCreate(ApiModel):
         return value
 
 
+class ChatDeviceCreate(ApiModel):
+    name: str = Field(min_length=1, max_length=160)
+    identity_public_key: str = Field(min_length=40, max_length=2000)
+
+
+class ChatDeviceResponse(ApiModel):
+    id: UUID
+    user_id: UUID
+    name: str
+    identity_public_key: str
+    verified_at: datetime | None
+    revoked_at: datetime | None
+    created_at: datetime
+
+
+class EncryptedEnvelopeCreate(ApiModel):
+    sender_device_id: UUID
+    recipient_device_id: UUID
+    message_id: UUID
+    ciphertext: str = Field(min_length=1, max_length=100_000)
+    nonce: str = Field(min_length=16, max_length=128)
+    protocol_version: str = Field(pattern=r"^stoa-chat-v1$")
+
+
+class EncryptedEnvelopeResponse(EncryptedEnvelopeCreate):
+    id: UUID
+    created_at: datetime
+    delivered_at: datetime | None
+
+
 class AuditEventResponse(ApiModel):
     id: UUID
     actor_user_id: UUID | None
