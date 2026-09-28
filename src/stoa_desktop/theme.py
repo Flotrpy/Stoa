@@ -22,6 +22,7 @@ _TOKENS: dict[Theme, dict[str, str]] = {
         "danger": "#b42318",
         "success": "#16803c",
         "hover": "#eef3f6",
+        "on_accent": "#ffffff",
     },
     Theme.DARK: {
         "bg": "#0d1218",
@@ -36,6 +37,7 @@ _TOKENS: dict[Theme, dict[str, str]] = {
         "danger": "#ff8a80",
         "success": "#62d48a",
         "hover": "#1c2630",
+        "on_accent": "#07151a",
     },
 }
 
@@ -60,7 +62,9 @@ def stylesheet(theme: Theme) -> str:
             border-radius: 6px; padding: 10px 12px; text-align: left; font-size: 14px;
         }}
         QPushButton#nav:hover {{ background: rgba(255,255,255,0.07); }}
-        QPushButton#nav[active="true"] {{ background: {token["accent"]}; color: white; }}
+        QPushButton#nav[active="true"] {{
+            background: {token["accent"]}; color: {token["on_accent"]};
+        }}
         QFrame#card {{
             background: {token["surface"]}; border: 1px solid {token["border"]};
             border-radius: 8px;

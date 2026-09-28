@@ -69,10 +69,8 @@ function dev() {
   process.on("SIGTERM", stop);
   children.forEach((child) => {
     child.on("exit", (code) => {
-      if (code && code !== 0) {
-        stop();
-        process.exit(code);
-      }
+      stop();
+      process.exit(code ?? 1);
     });
   });
 }
