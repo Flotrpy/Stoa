@@ -16,7 +16,7 @@ PR 5 — Packet analysis and IDS: open, green, and awaiting review.
 
 PR 6 — Web security scanner: open, green, and awaiting review.
 
-PR 7 — Firewall simulator: implementation complete locally on a stacked branch and undergoing final verification.
+PR 7 — Firewall simulator: open, green, and awaiting review.
 
 ## Repository inspection
 
@@ -60,6 +60,7 @@ PR 7 implements ordered allow/block simulation, TCP/UDP/ICMP/any matching, sourc
 - PR 6 hosted workflow: passed Windows, Ubuntu, Compose validation, and PostgreSQL migration lifecycle checks.
 - PR 7 focused tests: passed firewall simulator unit tests, API job/report tests, desktop smoke, and migration cycle; subset coverage gate is expected to fail when only focused tests run.
 - PR 7 `npm run build`: passed formatting, Ruff, strict mypy, 61 tests at 76.13% coverage, Bandit, dependency audit, secret scan, source/wheel builds, and packaging validation.
+- PR 7 hosted workflow: passed Windows, Ubuntu, Compose validation, and PostgreSQL migration lifecycle checks.
 - Docker Compose model validation: passed in hosted CI. Local runtime validation remains unavailable because Docker is not installed on the current workstation.
 - Windows verification: passed locally and in hosted CI. Linux verification: passed in hosted CI after declaring the required `libegl1` desktop runtime package.
 
