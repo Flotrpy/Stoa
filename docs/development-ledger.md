@@ -66,4 +66,5 @@ This ledger records meaningful commits only. Hashes and PR numbers are filled af
 | 60 | `3211ba8` | feat(chat): add authenticated encrypted chat | 10 | Device keys, AES-GCM envelopes, signatures, replay protection, ciphertext relay | Crypto vectors, tamper/replay/revocation/API tests | Pass | Independent review |
 | 61 | `66a9c7b` | build: add release and recovery tooling | 10 | Portable binary, SPDX SBOM, checksums, backup/restore | Release unit tests, Windows portable smoke | Pass | Clean-machine/signing evidence |
 | 62 | `d3ee665` | style: refine professional light and dark interface | 10 | Unified fields, tables, tabs, focus, hierarchy, contrast | Desktop smoke, theme tests | Pass | Full build |
-| 63 | pending | docs: complete security and operations handoff | 10 | Protocol, release, recovery, UI rationale, residual risks | `npm run build`; 79 tests, 77.89% coverage | Pass | Hosted matrix and external evidence |
+| 63 | `c5f2ccf` | docs: complete security and operations handoff | 10 | Protocol, release, recovery, UI rationale, residual risks | `npm run build`; 79 tests, 77.12% coverage | Pass | Hosted matrix and external evidence |
+| 64 | `226f6a3` | feat(desktop): add encrypted chat workspace | 10 | OS-vault-backed device keys, verification state, encrypted send/receive workflow | Chat unit/API/desktop smoke tests | Pass | Final full build |
