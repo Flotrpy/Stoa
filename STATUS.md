@@ -20,7 +20,9 @@ PR 7 — Firewall simulator: open, green, and awaiting review.
 
 PR 8 — Endpoint monitoring: open, green, and awaiting review.
 
-PR 9 — Risk-analysis tools: implementation complete locally on a stacked branch and undergoing final verification.
+PR 9 — Risk-analysis tools: open, green, and awaiting review.
+
+PR 10 — Secure chat and release hardening: implementation complete locally on a stacked branch and undergoing final verification.
 
 ## Repository inspection
 
@@ -50,6 +52,8 @@ PR 8 implements local SHA-256 baselines, include/exclude and recursion controls,
 
 PR 9 implements a versioned scikit-learn phishing pipeline with visible heuristic explanations and a strictly local password-auditing lab with format detection, dictionary rules, bounded generation, cancellation, limits, findings, remediation, and desktop workflows. It provides no online password attack mode and never uploads hashes, wordlists, or recovered candidates.
 
+PR 10 implements device-controlled authenticated chat encryption, ciphertext-only offline relay, replay/tamper/revocation controls, SPDX SBOM and checksum generation, native portable packaging, backup/restore tooling, operational documentation, and a design-system-informed light/dark UI pass. Production claims remain blocked on independent cryptographic review, protected code signing, clean-machine installer evidence, and a production PostgreSQL restore drill.
+
 ## Verification evidence
 
 - `npm install`: passed; npm dependency audit reported zero findings.
@@ -73,6 +77,9 @@ PR 9 implements a versioned scikit-learn phishing pipeline with visible heuristi
 - PR 8 `npm run build`: passed formatting, Ruff, strict mypy, 66 tests at 76.57% coverage, Bandit, dependency audit, secret scan, source/wheel builds, and packaging validation.
 - PR 8 hosted workflow: passed Windows, Ubuntu, Compose validation, and PostgreSQL migration lifecycle checks.
 - PR 9 `npm run build`: passed formatting, Ruff, strict mypy, 72 tests at 77.24% coverage, Bandit, dependency audit, secret scan, source/wheel builds, and packaging validation.
+- PR 9 hosted workflow: passed Windows, Ubuntu, Compose validation, and PostgreSQL migration lifecycle checks.
+- PR 10 `npm run build`: passed formatting, Ruff, strict mypy, 79 tests at 77.89% coverage, Bandit, dependency audit, secret scan, source/wheel builds, and packaging validation.
+- PR 10 Windows portable build: produced and smoke-launched `Stoa.exe`; SPDX SBOM and SHA-256 checksum generation passed.
 - Docker Compose model validation: passed in hosted CI. Local runtime validation remains unavailable because Docker is not installed on the current workstation.
 - Windows verification: passed locally and in hosted CI. Linux verification: passed in hosted CI after declaring the required `libegl1` desktop runtime package.
 
