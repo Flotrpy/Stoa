@@ -4,7 +4,9 @@ from pydantic import ValidationError
 from stoa_shared.settings import Settings
 
 
-def test_settings_use_safe_loopback_defaults() -> None:
+def test_settings_use_safe_loopback_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
+    for name in ("STOA_API_HOST", "STOA_API_PORT", "STOA_ENV"):
+        monkeypatch.delenv(name, raising=False)
     settings = Settings(_env_file=None)
 
     assert settings.api_host == "127.0.0.1"

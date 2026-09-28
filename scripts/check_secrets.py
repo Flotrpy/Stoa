@@ -10,7 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PATTERNS = {
     "private key": re.compile(rb"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
-    "GitHub token": re.compile(rb"gh[oprsu]_[A-Za-z0-9_]{30,}"),
+    "GitHub token": re.compile(rb"(?:gh[oprsu]_[A-Za-z0-9_]{30,}|github_pat_[A-Za-z0-9_]{40,})"),
     "AWS access key": re.compile(rb"AKIA[0-9A-Z]{16}"),
 }
 ALLOWED = {Path("scripts/check_secrets.py")}
