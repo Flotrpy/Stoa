@@ -19,6 +19,7 @@ from stoa_server.models import (
     AuditEvent,
     AuthorizationScope,
     Endpoint,
+    EndpointMonitoringObservation,
     EndpointState,
     Finding,
     FirewallSimulationObservation,
@@ -44,6 +45,11 @@ from stoa_shared.domain import (
     AuthorizationScopeResponse,
     ClientEventCreate,
     EndpointCreate,
+    EndpointMonitoringJobConfiguration,
+    EndpointMonitoringObservationResponse,
+    EndpointMonitoringPolicyConfiguration,
+    EndpointMonitoringResultCreate,
+    EndpointMonitoringResultResponse,
     EndpointResponse,
     FirewallSimulationJobConfiguration,
     FirewallSimulationObservationResponse,
@@ -328,6 +334,10 @@ def upsert_policy(
         configuration = FirewallSimulatorPolicyConfiguration.model_validate(
             configuration
         ).model_dump()
+    if module_id == "endpoint-monitoring":
+        configuration = EndpointMonitoringPolicyConfiguration.model_validate(
+            configuration
+        ).model_dump()
     policy = session.scalar(
         select(ModulePolicy).where(
             ModulePolicy.team_id == principal.team.id, ModulePolicy.module_id == module_id
@@ -457,6 +467,16 @@ def create_job(
         if len(simulation.packets) > firewall_policy.max_packets:
             raise HTTPException(status_code=403, detail="packet count exceeds module policy")
         configuration = simulation.model_dump()
+    if payload.module_id == "endpoint-monitoring":
+        monitoring = EndpointMonitoringJobConfiguration.model_validate(configuration)
+        monitoring_policy = EndpointMonitoringPolicyConfiguration.model_validate(
+            authorized.policy.configuration
+        )
+        if monitoring.maximum_file_bytes > monitoring_policy.maximum_file_bytes:
+            raise HTTPException(status_code=403, detail="file size exceeds module policy")
+        if monitoring.inspect_processes and not monitoring_policy.allow_process_inspection:
+            raise HTTPException(status_code=403, detail="process inspection is disabled by policy")
+        configuration = monitoring.model_dump()
 
     job = Job(
         team_id=principal.team.id,
@@ -856,6 +876,155 @@ def get_firewall_simulation_report(
             f"{packet.protocol} {packet.source}:{packet.source_port or '-'} -> "
             f"{packet.destination}:{packet.destination_port or '-'}"
         )
+        lines.append(f"  {item.explanation}")
+    return Response(content="\n".join(lines) + "\n", media_type="text/plain")
+
+
+def _endpoint_monitoring_job(session: Session, principal: Principal, job_id: UUID) -> Job:
+    job = session.scalar(select(Job).where(Job.id == job_id, Job.team_id == principal.team.id))
+    if job is None or job.module_id != "endpoint-monitoring":
+        raise HTTPException(status_code=404, detail="endpoint monitoring job not found")
+    return job
+
+
+@router.post(
+    "/jobs/{job_id}/endpoint-monitoring-results",
+    response_model=EndpointMonitoringResultResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_endpoint_monitoring_results(
+    job_id: UUID,
+    payload: EndpointMonitoringResultCreate,
+    principal: Annotated[Principal, Depends(require_permission(Permission.RUN_JOBS))],
+    session: Annotated[Session, Depends(get_session)],
+) -> EndpointMonitoringResultResponse:
+    job = _endpoint_monitoring_job(session, principal, job_id)
+    if payload.executing_endpoint_id != job.executing_endpoint_id:
+        raise HTTPException(status_code=403, detail="endpoint mismatch")
+    if job.state not in {JobState.QUEUED, JobState.RUNNING, JobState.CANCELLING}:
+        raise HTTPException(status_code=409, detail="job is already final")
+    observations = [
+        EndpointMonitoringObservation(
+            team_id=principal.team.id,
+            job_id=job.id,
+            baseline_id=payload.baseline_id,
+            **item.model_dump(),
+        )
+        for item in payload.observations
+    ]
+    session.add_all(observations)
+    alerts_created = 0
+    for item in payload.observations:
+        if item.severity not in {"medium", "high"}:
+            continue
+        finding = Finding(
+            team_id=principal.team.id,
+            job_id=job.id,
+            title=item.title,
+            summary=f"{item.subject}: {item.explanation}",
+            severity=Severity(item.severity),
+            confidence=item.confidence,
+            remediation=(
+                "Validate the process or file change and renew the baseline only if approved."
+            ),
+        )
+        session.add(finding)
+        session.flush()
+        deduplication_key = hashlib.sha256(
+            f"{item.rule_id}|{job.executing_endpoint_id}|{item.subject}".encode()
+        ).hexdigest()
+        if (
+            session.scalar(
+                select(Alert).where(
+                    Alert.team_id == principal.team.id,
+                    Alert.deduplication_key == deduplication_key,
+                )
+            )
+            is None
+        ):
+            session.add(
+                Alert(
+                    team_id=principal.team.id,
+                    finding_id=finding.id,
+                    title=item.title,
+                    severity=Severity(item.severity),
+                    confidence=item.confidence,
+                    deduplication_key=deduplication_key,
+                )
+            )
+            alerts_created += 1
+    job.state = JobState.CANCELLED if payload.cancelled else JobState.SUCCEEDED
+    record_audit_event(
+        session,
+        team_id=principal.team.id,
+        actor_user_id=principal.user.id,
+        action="endpoint_monitoring.results_recorded",
+        resource_type="job",
+        resource_id=str(job.id),
+        correlation_id=job.correlation_id,
+        event_data={
+            "baseline_id": payload.baseline_id,
+            "observation_count": len(observations),
+            "alerts_created": alerts_created,
+            "cancelled": payload.cancelled,
+        },
+    )
+    session.commit()
+    return EndpointMonitoringResultResponse(
+        job=JobResponse.model_validate(job),
+        baseline_id=payload.baseline_id,
+        observations=[
+            EndpointMonitoringObservationResponse.model_validate(item) for item in observations
+        ],
+    )
+
+
+@router.get(
+    "/jobs/{job_id}/endpoint-monitoring-results",
+    response_model=EndpointMonitoringResultResponse,
+)
+def get_endpoint_monitoring_results(
+    job_id: UUID,
+    principal: Annotated[Principal, Depends(require_permission(Permission.VIEW))],
+    session: Annotated[Session, Depends(get_session)],
+) -> EndpointMonitoringResultResponse:
+    job = _endpoint_monitoring_job(session, principal, job_id)
+    observations = list(
+        session.scalars(
+            select(EndpointMonitoringObservation)
+            .where(
+                EndpointMonitoringObservation.job_id == job.id,
+                EndpointMonitoringObservation.team_id == principal.team.id,
+            )
+            .order_by(EndpointMonitoringObservation.created_at)
+        )
+    )
+    return EndpointMonitoringResultResponse(
+        job=JobResponse.model_validate(job),
+        baseline_id=observations[0].baseline_id if observations else None,
+        observations=[
+            EndpointMonitoringObservationResponse.model_validate(item) for item in observations
+        ],
+    )
+
+
+@router.get("/jobs/{job_id}/endpoint-monitoring-report")
+def get_endpoint_monitoring_report(
+    job_id: UUID,
+    principal: Annotated[Principal, Depends(require_permission(Permission.VIEW))],
+    session: Annotated[Session, Depends(get_session)],
+    format: Annotated[str, Query(pattern=r"^(json|text)$")] = "json",
+) -> Response:
+    result = get_endpoint_monitoring_results(job_id, principal, session)
+    if format == "json":
+        return Response(content=result.model_dump_json(indent=2), media_type="application/json")
+    lines = [
+        f"Stoá endpoint monitoring report: {result.job.target}",
+        f"Baseline: {result.baseline_id or 'not recorded'}",
+        "",
+    ]
+    for item in result.observations:
+        lines.append(f"{item.severity.upper():<7} {item.rule_id:<24} {item.subject}")
         lines.append(f"  {item.explanation}")
     return Response(content="\n".join(lines) + "\n", media_type="text/plain")
 

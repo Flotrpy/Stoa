@@ -154,6 +154,12 @@ class FirewallSimulatorPolicyConfiguration(ApiModel):
     max_packets: int = Field(default=500, ge=1, le=5000)
 
 
+class EndpointMonitoringPolicyConfiguration(ApiModel):
+    max_files: int = Field(default=50_000, ge=1, le=500_000)
+    maximum_file_bytes: int = Field(default=100_000_000, ge=1_000, le=2_000_000_000)
+    allow_process_inspection: bool = True
+
+
 class ModulePolicyResponse(ApiModel):
     id: UUID
     team_id: UUID
@@ -183,6 +189,8 @@ class JobCreate(ApiModel):
             WebScanJobConfiguration.model_validate(self.configuration)
         if self.module_id == "firewall-simulator":
             FirewallSimulationJobConfiguration.model_validate(self.configuration)
+        if self.module_id == "endpoint-monitoring":
+            EndpointMonitoringJobConfiguration.model_validate(self.configuration)
         return self
 
 
@@ -451,6 +459,56 @@ class FirewallSimulationResultResponse(ApiModel):
     job: JobResponse
     analysis: FirewallPolicyAnalysisModel | None = None
     observations: list[FirewallSimulationObservationResponse]
+
+
+class EndpointMonitoringJobConfiguration(ApiModel):
+    root: str = Field(min_length=1, max_length=1024)
+    recursive: bool = True
+    include: list[str] = Field(default_factory=lambda: ["*"], min_length=1, max_length=50)
+    exclude: list[str] = Field(default_factory=list, max_length=100)
+    maximum_file_bytes: int = Field(default=100_000_000, ge=1_000, le=2_000_000_000)
+    inspect_processes: bool = True
+
+
+class EndpointMonitoringObservationCreate(ApiModel):
+    observation_type: str = Field(pattern=r"^(integrity|process-indicator)$")
+    rule_id: str = Field(min_length=1, max_length=64)
+    title: str = Field(min_length=1, max_length=240)
+    severity: str = Field(pattern=r"^(info|low|medium|high)$")
+    confidence: float = Field(ge=0, le=1)
+    subject: str = Field(min_length=1, max_length=1024)
+    explanation: str = Field(min_length=1, max_length=2000)
+    evidence: dict[str, str | int | float] = Field(default_factory=dict)
+    chain_hash: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
+
+    @field_validator("evidence")
+    @classmethod
+    def endpoint_evidence_is_bounded(
+        cls, value: dict[str, str | int | float]
+    ) -> dict[str, str | int | float]:
+        forbidden = {"keystrokes", "content", "password", "token", "secret"}
+        if len(value) > 20 or any(key.casefold() in forbidden for key in value):
+            raise ValueError("endpoint evidence is too large or sensitive")
+        return value
+
+
+class EndpointMonitoringResultCreate(ApiModel):
+    executing_endpoint_id: UUID
+    baseline_id: str = Field(min_length=1, max_length=128)
+    observations: list[EndpointMonitoringObservationCreate] = Field(max_length=10_000)
+    cancelled: bool = False
+
+
+class EndpointMonitoringObservationResponse(EndpointMonitoringObservationCreate):
+    id: UUID
+    job_id: UUID
+    created_at: datetime
+
+
+class EndpointMonitoringResultResponse(ApiModel):
+    job: JobResponse
+    baseline_id: str | None = None
+    observations: list[EndpointMonitoringObservationResponse]
 
 
 class AlertResponse(ApiModel):

@@ -33,6 +33,83 @@ def prepare_authorized_job(
     return endpoint["id"], scope["id"]
 
 
+def test_endpoint_monitoring_policy_results_and_report(
+    client: TestClient, admin_headers: dict[str, str]
+) -> None:
+    endpoint_id, scope_id = prepare_authorized_job(client, admin_headers, "endpoint-monitoring")
+    client.put(
+        "/api/v1/module-policies/endpoint-monitoring",
+        headers=admin_headers,
+        json={
+            "enabled": True,
+            "configuration": {
+                "maximum_file_bytes": 2000,
+                "allow_process_inspection": False,
+            },
+        },
+    )
+    denied = client.post(
+        "/api/v1/jobs",
+        headers=admin_headers,
+        json={
+            "module_id": "endpoint-monitoring",
+            "executing_endpoint_id": endpoint_id,
+            "authorization_scope_id": scope_id,
+            "target": "127.0.0.1",
+            "business_justification": "Monitor approved endpoint files for unexpected changes",
+            "configuration": {"root": "/approved", "inspect_processes": True},
+        },
+    )
+    assert denied.status_code == 403
+    job = client.post(
+        "/api/v1/jobs",
+        headers=admin_headers,
+        json={
+            "module_id": "endpoint-monitoring",
+            "executing_endpoint_id": endpoint_id,
+            "authorization_scope_id": scope_id,
+            "target": "127.0.0.1",
+            "business_justification": "Monitor approved endpoint files for unexpected changes",
+            "configuration": {
+                "root": "/approved",
+                "maximum_file_bytes": 2000,
+                "inspect_processes": False,
+            },
+        },
+    )
+    assert job.status_code == 201
+    result = client.post(
+        f"/api/v1/jobs/{job.json()['id']}/endpoint-monitoring-results",
+        headers=admin_headers,
+        json={
+            "executing_endpoint_id": endpoint_id,
+            "baseline_id": "baseline-1",
+            "observations": [
+                {
+                    "observation_type": "integrity",
+                    "rule_id": "STOA-FIM-CHANGED",
+                    "title": "Protected file changed",
+                    "severity": "high",
+                    "confidence": 1,
+                    "subject": "config/settings.json",
+                    "explanation": "SHA-256 differs from the approved baseline.",
+                    "evidence": {"event": "changed"},
+                    "chain_hash": "a" * 64,
+                }
+            ],
+        },
+    )
+    assert result.status_code == 201
+    assert result.json()["observations"][0]["subject"] == "config/settings.json"
+    report = client.get(
+        f"/api/v1/jobs/{job.json()['id']}/endpoint-monitoring-report?format=text",
+        headers=admin_headers,
+    )
+    assert report.status_code == 200
+    assert "Protected file changed" not in report.text
+    assert "config/settings.json" in report.text
+
+
 def test_job_requires_target_within_current_scope(
     client: TestClient, admin_headers: dict[str, str]
 ) -> None:
