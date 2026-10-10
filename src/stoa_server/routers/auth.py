@@ -11,7 +11,12 @@ from stoa_server.audit import record_audit_event
 from stoa_server.database import get_session
 from stoa_server.models import Role, RoleName, Team, TeamMembership, User
 from stoa_server.rbac import Principal, get_current_principal
-from stoa_server.security import create_access_token, hash_password, verify_password
+from stoa_server.security import (
+    DUMMY_PASSWORD_HASH,
+    create_access_token,
+    hash_password,
+    verify_password,
+)
 from stoa_shared.domain import (
     BootstrapRequest,
     LoginRequest,
@@ -93,11 +98,10 @@ def issue_token(
     """Authenticate credentials and bind the token to one current team membership."""
 
     user = session.scalar(select(User).where(User.email == payload.email))
-    if (
-        user is None
-        or not user.is_active
-        or not verify_password(payload.password, user.password_hash)
-    ):
+    password_ok = verify_password(
+        payload.password, user.password_hash if user else DUMMY_PASSWORD_HASH
+    )
+    if user is None or not user.is_active or not password_ok:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid credentials")
     memberships = session.execute(
         select(TeamMembership.team_id).where(TeamMembership.user_id == user.id)
