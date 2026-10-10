@@ -12,6 +12,8 @@ from stoa_shared.settings import Settings
 _password_hash = PasswordHash.recommended()
 _issuer = "stoa-api"
 _algorithm = "HS256"
+# Verified against when the email is unknown so login timing does not reveal which accounts exist.
+DUMMY_PASSWORD_HASH = _password_hash.hash("stoa-timing-equalizer")
 
 
 class TokenValidationError(ValueError):
